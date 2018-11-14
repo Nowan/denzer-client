@@ -1,6 +1,11 @@
-var path = require('path');
-var webpack = require('webpack');
-var HtmlWebpackPlugin = require('html-webpack-plugin');
+const path = require('path');
+const webpack = require('webpack');
+const HtmlWebpackPlugin = require('html-webpack-plugin');
+
+const MODULE_PATH = {
+    PIXI: path.join(__dirname, 'node_modules', 'pixi.js'),
+    SOCKET_IO: path.join(__dirname, 'node_modules', 'socket.io-client')
+}
 
 module.exports = {
     mode: 'development',
@@ -24,7 +29,10 @@ module.exports = {
             },
             { 
                 test: /\.json$/, 
-                include: path.join(__dirname, 'node_modules', 'pixi.js'),
+                include: [
+                    MODULE_PATH.PIXI,
+                    MODULE_PATH.SOCKET_IO
+                ],
                 loader: 'json'
             },
             {
@@ -40,14 +48,19 @@ module.exports = {
                 ]
             },
             {
-                test: path.join(__dirname, 'node_modules', 'pixi.js'),
-                loader: 'expose-loader?pixi' 
+                test: MODULE_PATH.PIXI,
+                loader: 'expose-loader?pixi.js' 
+            },
+            {
+                test: MODULE_PATH.SOCKET_IO,
+                loader: 'expose-loader?socket.io' 
             }
        ]
     },
     resolve: {
         alias: {
-          'pixi': path.join(__dirname, 'node_modules', 'pixi.js'),
+          'pixi.js': MODULE_PATH.PIXI,
+          'socket.io': MODULE_PATH.SOCKET_IO
         }
     },
     stats: {

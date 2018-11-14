@@ -27,6 +27,7 @@
   },
   "dependencies": {
     "@babel/runtime": "^7.1.5",
-    "pixi.js": "^4.8.2"
+    "pixi.js": "^4.8.2",
+    "socket.io-client": "^2.1.1"
   }
 }
