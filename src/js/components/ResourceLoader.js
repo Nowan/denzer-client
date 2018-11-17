@@ -3,19 +3,26 @@
 class ResourceLoader extends PIXI.loaders.Loader {
     constructor(resourceRegistry) {
         super();
+
+        this._resourceRegistry = resourceRegistry;
     }
 
     async load(...urls) {
         return new Promise((resolve, reject) => {
             for (const url of urls) {
-                // TODO: add only missing from registry resources
-                this.add(url);
+                if (!this._resourceRegistry.contains(url)) {
+                    this.add(url);
+                }
             }
 
             this.onError.add(reject);
             
             PIXI.loaders.Loader.prototype.load.call(this, (loader, resources) => {
-                // TODO: store resources in registry;
+                for (const alias in resources) {
+                    if (resources.hasOwnProperty(alias)) {
+                        this._resourceRegistry.store(alias, resources[alias]);
+                    }
+                }
                 resolve();
             });
         });

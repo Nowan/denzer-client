@@ -15,6 +15,11 @@ class BootScene extends Scene {
             "/assets/images/ninja.jpg"
         );
     }
+
+    init() {
+        const sprite = new PIXI.Sprite(this.resources["/assets/images/shaman.jpg"]);
+        this.addChild(sprite)
+    }
 }
 
 export default BootScene;
