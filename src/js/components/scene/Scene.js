@@ -4,7 +4,10 @@ class Scene extends PIXI.Container {
     constructor() {
         super();
         
-        this.director = null; // reference to SceneDirector, inserted by himself on scene instantiation.
+        // References inserted to scene immediately after its creation
+        this.resources = null; // ResourceRegistry
+        this.loader = null; // ResourceLoader
+        this.director = null; // SceneDirector
     }
 
     async load() {

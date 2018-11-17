@@ -55390,9 +55390,9 @@ window.Game = _js_Game__WEBPACK_IMPORTED_MODULE_2__["default"];
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */ var _components_SceneDirector__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./components/SceneDirector */ "./src/js/components/SceneDirector.js");
-/* harmony import */ var _scene_boot_BootScene__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./scene/boot/BootScene */ "./src/js/scene/boot/BootScene.js");
-/* harmony import */ var _scene_battleground_BattlegroundScene__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./scene/battleground/BattlegroundScene */ "./src/js/scene/battleground/BattlegroundScene.js");
+/* harmony import */ var _GameModel__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./GameModel */ "./src/js/GameModel.js");
+/* harmony import */ var _GameView__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./GameView */ "./src/js/GameView.js");
+/* harmony import */ var _GameController__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./GameController */ "./src/js/GameController.js");
 
 
 
@@ -55405,15 +55405,13 @@ class Game extends PIXI.Application {
       width: 800,
       height: 600
     });
-    this._sceneDirector = new _components_SceneDirector__WEBPACK_IMPORTED_MODULE_0__["default"](this.stage);
+    this._model = new _GameModel__WEBPACK_IMPORTED_MODULE_0__["default"]();
+    this._view = this.stage.addChild(new _GameView__WEBPACK_IMPORTED_MODULE_1__["default"]());
+    this._controller = new _GameController__WEBPACK_IMPORTED_MODULE_2__["default"](this._model, this._view);
   }
 
   init() {
-    this._sceneDirector.register("Boot", _scene_boot_BootScene__WEBPACK_IMPORTED_MODULE_1__["default"]);
-
-    this._sceneDirector.register("Battleground", _scene_battleground_BattlegroundScene__WEBPACK_IMPORTED_MODULE_2__["default"]);
-
-    this._sceneDirector.goTo("Boot");
+    this._controller.init();
   }
 
   getCanvas() {
@@ -55426,10 +55424,101 @@ class Game extends PIXI.Application {
 
 /***/ }),
 
-/***/ "./src/js/components/Scene.js":
-/*!************************************!*\
-  !*** ./src/js/components/Scene.js ***!
-  \************************************/
+/***/ "./src/js/GameController.js":
+/*!**********************************!*\
+  !*** ./src/js/GameController.js ***!
+  \**********************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+
+
+class GameController {
+  constructor(model, view) {
+    this._model = model;
+    this._view = view;
+  }
+
+  init() {
+    this._view.registerScenes(this._model.SCENES);
+  }
+
+}
+
+/* harmony default export */ __webpack_exports__["default"] = (GameController);
+
+/***/ }),
+
+/***/ "./src/js/GameModel.js":
+/*!*****************************!*\
+  !*** ./src/js/GameModel.js ***!
+  \*****************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+
+
+function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
+
+class GameModel {
+  constructor() {}
+
+}
+
+_defineProperty(GameModel, "SCENE", {
+  Boot: "hooo"
+});
+
+/* harmony default export */ __webpack_exports__["default"] = (GameModel);
+
+/***/ }),
+
+/***/ "./src/js/GameView.js":
+/*!****************************!*\
+  !*** ./src/js/GameView.js ***!
+  \****************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */ var _components_scene_SceneDirector__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./components/scene/SceneDirector */ "./src/js/components/scene/SceneDirector.js");
+/* harmony import */ var _scene_boot_BootScene__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./scene/boot/BootScene */ "./src/js/scene/boot/BootScene.js");
+/* harmony import */ var _scene_battleground_BattlegroundScene__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./scene/battleground/BattlegroundScene */ "./src/js/scene/battleground/BattlegroundScene.js");
+
+
+
+
+
+
+class GameView extends PIXI.Container {
+  constructor() {
+    super();
+    this._director = new _components_scene_SceneDirector__WEBPACK_IMPORTED_MODULE_0__["default"](this);
+  }
+
+  registerScenes(scenes) {
+    console.log(scenes);
+
+    for (const sceneAlias of scenes) {
+      console.log(sceneAlias);
+    }
+  }
+
+}
+
+/* harmony default export */ __webpack_exports__["default"] = (GameView);
+
+/***/ }),
+
+/***/ "./src/js/components/scene/Scene.js":
+/*!******************************************!*\
+  !*** ./src/js/components/scene/Scene.js ***!
+  \******************************************/
 /*! exports provided: default */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
@@ -55440,7 +55529,7 @@ __webpack_require__.r(__webpack_exports__);
 class Scene extends PIXI.Container {
   constructor() {
     super();
-    this.director = null; // reference to SceneDirector, inserted by himself on scene initialization.
+    this.director = null; // reference to SceneDirector, inserted by himself on scene instantiation.
   }
 
   async load() {
@@ -55459,10 +55548,10 @@ class Scene extends PIXI.Container {
 
 /***/ }),
 
-/***/ "./src/js/components/SceneDirector.js":
-/*!********************************************!*\
-  !*** ./src/js/components/SceneDirector.js ***!
-  \********************************************/
+/***/ "./src/js/components/scene/SceneDirector.js":
+/*!**************************************************!*\
+  !*** ./src/js/components/scene/SceneDirector.js ***!
+  \**************************************************/
 /*! exports provided: default */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
@@ -55525,12 +55614,12 @@ class SceneDirector {
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */ var _components_Scene__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../../components/Scene */ "./src/js/components/Scene.js");
+/* harmony import */ var _components_scene_Scene__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../../components/scene/Scene */ "./src/js/components/scene/Scene.js");
 
 
 
 
-class BattlegroundScene extends _components_Scene__WEBPACK_IMPORTED_MODULE_0__["default"] {
+class BattlegroundScene extends _components_scene_Scene__WEBPACK_IMPORTED_MODULE_0__["default"] {
   constructor() {
     super();
   }
@@ -55554,12 +55643,12 @@ class BattlegroundScene extends _components_Scene__WEBPACK_IMPORTED_MODULE_0__["
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */ var _components_Scene__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../../components/Scene */ "./src/js/components/Scene.js");
+/* harmony import */ var _components_scene_Scene__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../../components/scene/Scene */ "./src/js/components/scene/Scene.js");
 
 
 
 
-class BootScene extends _components_Scene__WEBPACK_IMPORTED_MODULE_0__["default"] {
+class BootScene extends _components_scene_Scene__WEBPACK_IMPORTED_MODULE_0__["default"] {
   constructor() {
     super();
   }
@@ -55576,15 +55665,7 @@ class BootScene extends _components_Scene__WEBPACK_IMPORTED_MODULE_0__["default"
     });
   }
 
-  init() {
-    console.log("init scene");
-    const sprite = new PIXI.Sprite.fromImage("/assets/images/barbarian.jpg");
-    this.addChild(sprite);
-  }
-
-  destroy() {
-    console.log("destroy scene");
-  }
+  init() {}
 
 }
 

@@ -30,7 +30,12 @@ module.exports = {
                 test: /\.js$/,
                 include: path.resolve(__dirname, 'src'),
                 use: {
-                    loader: 'babel-loader'
+                    loader: 'babel-loader',
+                    options: {
+                        plugins: [
+                          "@babel/plugin-proposal-class-properties"
+                        ]
+                    }
                 }
             },
             { 

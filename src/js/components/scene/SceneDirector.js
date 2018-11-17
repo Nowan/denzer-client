@@ -5,6 +5,7 @@ class SceneDirector {
         this._stage = stage;
         this._sceneConstructors = {};
         this._activeScene = null;
+        this._nextScene = null;
     }
 
     register(alias, SceneConstructor) {
@@ -15,10 +16,9 @@ class SceneDirector {
         const Scene = this._sceneConstructors[alias];
         if (Scene) {
             const scene = new Scene();
+            this.onSceneCreate(scene)
+
             const director = this;
-
-            Object.defineProperty(scene, "director", {get: () => {return director}});
-
             scene.load().then(() => { 
                 if (director._activeScene) {
                     director._activeScene.destroy();
@@ -33,6 +33,10 @@ class SceneDirector {
         else {
             console.error("Scene alias \"" + alias + "\" is not registered.")
         }
+    }
+
+    onSceneCreate(scene) {
+        // Overridden in Game class to insert scene.loader, scene.resources, scene.director properties
     }
 }
 

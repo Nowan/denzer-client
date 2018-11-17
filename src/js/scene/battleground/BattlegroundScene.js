@@ -1,14 +1,10 @@
 "use strict";
 
-import Scene from "../../components/Scene";
+import Scene from "../../components/scene/Scene";
 
 class BattlegroundScene extends Scene {
     constructor() {
         super();
-    }
-
-    init() {
-        console.log(this);
     }
 }
 
