@@ -1,6 +1,7 @@
 const path = require('path');
 const webpack = require('webpack');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
+const CopyWebpackPlugin = require('copy-webpack-plugin');
 
 const MODULE_PATH = {
     PIXI: path.join(__dirname, 'node_modules', 'pixi.js'),
@@ -14,10 +15,15 @@ module.exports = {
         path: path.resolve(__dirname, 'build'),
         filename: 'app.bundle.js'
     },
-    plugins: [new HtmlWebpackPlugin({
-        template: './src/template.html',
-        inject: false
-    })],
+    plugins: [
+        new HtmlWebpackPlugin({
+            template: './src/template.html',
+            inject: false
+        }),
+        new CopyWebpackPlugin([
+            { from:'./src/assets', to: 'assets' } 
+        ]), 
+    ],
     module: {
        rules: [
             {
@@ -34,18 +40,6 @@ module.exports = {
                     MODULE_PATH.SOCKET_IO
                 ],
                 loader: 'json'
-            },
-            {
-                test: /.*[.](svg|png|jpg|mp3|ogg|m4a|wav)$/,
-                use: [
-                    {
-                        loader: 'file-loader',
-                        options: {
-                            limit: 30000,
-                            name: '[path][name].[ext]'
-                        }
-                    }
-                ]
             },
             {
                 test: MODULE_PATH.PIXI,

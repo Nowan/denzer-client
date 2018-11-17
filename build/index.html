@@ -7,11 +7,10 @@
     </head>
     <body>
         <script>
-            const app = new PIXI.Application({ width: 800, height: 600 });
-            document.body.appendChild(app.view);
+            const game = new Game();
+            document.body.appendChild(game.getCanvas());
 
-            const socket = new Socket();
-            console.log(socket);
+            game.init();
         </script>
     </body>
 </html>

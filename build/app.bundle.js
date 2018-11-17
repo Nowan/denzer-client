@@ -55367,6 +55367,8 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var pixi_js__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(pixi_js__WEBPACK_IMPORTED_MODULE_0__);
 /* harmony import */ var socket_io__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! socket.io */ "./node_modules/socket.io-client/lib/index.js-exposed");
 /* harmony import */ var socket_io__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(socket_io__WEBPACK_IMPORTED_MODULE_1__);
+/* harmony import */ var _js_Game__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./js/Game */ "./src/js/Game.js");
+
 
 
 window.PIXI = pixi_js__WEBPACK_IMPORTED_MODULE_0__;
@@ -55374,6 +55376,219 @@ window.PIXI = pixi_js__WEBPACK_IMPORTED_MODULE_0__;
 window.Socket = function () {
   return socket_io__WEBPACK_IMPORTED_MODULE_1__();
 };
+
+window.Game = _js_Game__WEBPACK_IMPORTED_MODULE_2__["default"];
+
+/***/ }),
+
+/***/ "./src/js/Game.js":
+/*!************************!*\
+  !*** ./src/js/Game.js ***!
+  \************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */ var _components_SceneDirector__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./components/SceneDirector */ "./src/js/components/SceneDirector.js");
+/* harmony import */ var _scene_boot_BootScene__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./scene/boot/BootScene */ "./src/js/scene/boot/BootScene.js");
+/* harmony import */ var _scene_battleground_BattlegroundScene__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./scene/battleground/BattlegroundScene */ "./src/js/scene/battleground/BattlegroundScene.js");
+
+
+
+
+
+
+class Game extends PIXI.Application {
+  constructor() {
+    super({
+      width: 800,
+      height: 600
+    });
+    this._sceneDirector = new _components_SceneDirector__WEBPACK_IMPORTED_MODULE_0__["default"](this.stage);
+  }
+
+  init() {
+    this._sceneDirector.register("Boot", _scene_boot_BootScene__WEBPACK_IMPORTED_MODULE_1__["default"]);
+
+    this._sceneDirector.register("Battleground", _scene_battleground_BattlegroundScene__WEBPACK_IMPORTED_MODULE_2__["default"]);
+
+    this._sceneDirector.goTo("Boot");
+  }
+
+  getCanvas() {
+    return this.view;
+  }
+
+}
+
+/* harmony default export */ __webpack_exports__["default"] = (Game);
+
+/***/ }),
+
+/***/ "./src/js/components/Scene.js":
+/*!************************************!*\
+  !*** ./src/js/components/Scene.js ***!
+  \************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+
+
+class Scene extends PIXI.Container {
+  constructor() {
+    super();
+    this.director = null; // reference to SceneDirector, inserted by himself on scene initialization.
+  }
+
+  async load() {
+    return new Promise((resolve, reject) => {
+      resolve();
+    });
+  }
+
+  init() {}
+
+  destroy() {}
+
+}
+
+/* harmony default export */ __webpack_exports__["default"] = (Scene);
+
+/***/ }),
+
+/***/ "./src/js/components/SceneDirector.js":
+/*!********************************************!*\
+  !*** ./src/js/components/SceneDirector.js ***!
+  \********************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+
+
+class SceneDirector {
+  constructor(stage) {
+    this._stage = stage;
+    this._sceneConstructors = {};
+    this._activeScene = null;
+  }
+
+  register(alias, SceneConstructor) {
+    this._sceneConstructors[alias] = SceneConstructor;
+  }
+
+  goTo(alias) {
+    const Scene = this._sceneConstructors[alias];
+
+    if (Scene) {
+      const scene = new Scene();
+      const director = this;
+      Object.defineProperty(scene, "director", {
+        get: () => {
+          return director;
+        }
+      });
+      scene.load().then(() => {
+        if (director._activeScene) {
+          director._activeScene.destroy();
+
+          director._stage.removeChild(director._activeScene);
+        }
+
+        scene.init();
+
+        director._stage.addChild(scene);
+
+        director._activeScene = scene;
+      });
+    } else {
+      console.error("Scene alias \"" + alias + "\" is not registered.");
+    }
+  }
+
+}
+
+/* harmony default export */ __webpack_exports__["default"] = (SceneDirector);
+
+/***/ }),
+
+/***/ "./src/js/scene/battleground/BattlegroundScene.js":
+/*!********************************************************!*\
+  !*** ./src/js/scene/battleground/BattlegroundScene.js ***!
+  \********************************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */ var _components_Scene__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../../components/Scene */ "./src/js/components/Scene.js");
+
+
+
+
+class BattlegroundScene extends _components_Scene__WEBPACK_IMPORTED_MODULE_0__["default"] {
+  constructor() {
+    super();
+  }
+
+  init() {
+    console.log(this);
+  }
+
+}
+
+/* harmony default export */ __webpack_exports__["default"] = (BattlegroundScene);
+
+/***/ }),
+
+/***/ "./src/js/scene/boot/BootScene.js":
+/*!****************************************!*\
+  !*** ./src/js/scene/boot/BootScene.js ***!
+  \****************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */ var _components_Scene__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../../components/Scene */ "./src/js/components/Scene.js");
+
+
+
+
+class BootScene extends _components_Scene__WEBPACK_IMPORTED_MODULE_0__["default"] {
+  constructor() {
+    super();
+  }
+
+  async load() {
+    return new Promise((resolve, reject) => {
+      PIXI.loader.add("/assets/images/shaman.jpg");
+      PIXI.loader.add("/assets/images/barbarian.jpg");
+      PIXI.loader.add("/assets/images/dwarf.jpg");
+      PIXI.loader.add("/assets/images/ninja.jpg");
+      PIXI.loader.load();
+      PIXI.loader.onComplete.add(resolve);
+      PIXI.loader.onError.add(reject);
+    });
+  }
+
+  init() {
+    console.log("init scene");
+    const sprite = new PIXI.Sprite.fromImage("/assets/images/barbarian.jpg");
+    this.addChild(sprite);
+  }
+
+  destroy() {
+    console.log("destroy scene");
+  }
+
+}
+
+/* harmony default export */ __webpack_exports__["default"] = (BootScene);
 
 /***/ }),
 

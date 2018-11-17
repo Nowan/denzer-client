@@ -9,18 +9,19 @@ class BootScene extends Scene {
 
     async load() {
         return new Promise((resolve, reject) => {
-            // TODO: implement assets loading
-            resolve();
+            PIXI.loader.add("/assets/images/shaman.jpg");
+            PIXI.loader.add("/assets/images/barbarian.jpg");
+            PIXI.loader.add("/assets/images/dwarf.jpg");
+            PIXI.loader.add("/assets/images/ninja.jpg");
+            PIXI.loader.load();
+
+            PIXI.loader.onComplete.add(resolve);
+            PIXI.loader.onError.add(reject);
         });
     }
 
     init() {
-        console.log("init scene");
-        this.director.goTo("Battleground");
-    }
-
-    destroy() {
-        console.log("destroy scene");
+        this.addChild(new PIXI.Sprite.fromImage("/assets/images/barbarian.jpg"));
     }
 }
 
