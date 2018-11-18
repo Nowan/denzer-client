@@ -55399,7 +55399,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _components_ResourceRegistry__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./components/ResourceRegistry */ "./src/js/components/ResourceRegistry.js");
 /* harmony import */ var _components_ResourceLoader__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./components/ResourceLoader */ "./src/js/components/ResourceLoader.js");
 /* harmony import */ var _components_scene_SceneDirector__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./components/scene/SceneDirector */ "./src/js/components/scene/SceneDirector.js");
-/* harmony import */ var _components_Socket__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./components/Socket */ "./src/js/components/Socket.js");
+/* harmony import */ var _components_socket_Socket__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./components/socket/Socket */ "./src/js/components/socket/Socket.js");
 /* harmony import */ var _scene_boot_BootScene__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./scene/boot/BootScene */ "./src/js/scene/boot/BootScene.js");
 /* harmony import */ var _scene_battleground_BattlegroundScene__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./scene/battleground/BattlegroundScene */ "./src/js/scene/battleground/BattlegroundScene.js");
 
@@ -55421,13 +55421,15 @@ class Game extends PIXI.Application {
     this._resources = new _components_ResourceRegistry__WEBPACK_IMPORTED_MODULE_0__["default"]();
     this._loader = new _components_ResourceLoader__WEBPACK_IMPORTED_MODULE_1__["default"](this._resources);
     this._sceneDirector = new _components_scene_SceneDirector__WEBPACK_IMPORTED_MODULE_2__["default"](this.stage);
-    this._socket = new _components_Socket__WEBPACK_IMPORTED_MODULE_3__["default"]();
+    this._socket = new _components_socket_Socket__WEBPACK_IMPORTED_MODULE_3__["default"]();
 
     this._setUpSceneDecorator();
 
     this._registerScenes();
 
-    this._sceneDirector.goTo("Boot");
+    this._socket.on(_components_socket_Socket__WEBPACK_IMPORTED_MODULE_3__["default"].EVENT.CONNECTION_ESTABLISHED, () => {
+      this._sceneDirector.goTo("Boot");
+    });
   }
 
   refresh() {
@@ -55559,32 +55561,6 @@ class ResourceRegistry {
 
 /***/ }),
 
-/***/ "./src/js/components/Socket.js":
-/*!*************************************!*\
-  !*** ./src/js/components/Socket.js ***!
-  \*************************************/
-/*! exports provided: default */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony import */ var socket_io__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! socket.io */ "./node_modules/socket.io-client/lib/index.js-exposed");
-/* harmony import */ var socket_io__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(socket_io__WEBPACK_IMPORTED_MODULE_0__);
-
-
-
-
-class Socket {
-  constructor() {
-    socket_io__WEBPACK_IMPORTED_MODULE_0__["call"](this);
-  }
-
-}
-
-/* harmony default export */ __webpack_exports__["default"] = (Socket);
-
-/***/ }),
-
 /***/ "./src/js/components/scene/Scene.js":
 /*!******************************************!*\
   !*** ./src/js/components/scene/Scene.js ***!
@@ -55690,6 +55666,57 @@ class SceneDirector {
 
 /***/ }),
 
+/***/ "./src/js/components/socket/Socket.js":
+/*!********************************************!*\
+  !*** ./src/js/components/socket/Socket.js ***!
+  \********************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */ var socket_io__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! socket.io */ "./node_modules/socket.io-client/lib/index.js-exposed");
+/* harmony import */ var socket_io__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(socket_io__WEBPACK_IMPORTED_MODULE_0__);
+/* harmony import */ var _socketEvents__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./socketEvents */ "./src/js/components/socket/socketEvents.js");
+
+
+function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
+
+
+
+
+class Socket {
+  constructor() {
+    return socket_io__WEBPACK_IMPORTED_MODULE_0__();
+  }
+
+}
+
+_defineProperty(Socket, "EVENT", _socketEvents__WEBPACK_IMPORTED_MODULE_1__["default"]);
+
+/* harmony default export */ __webpack_exports__["default"] = (Socket);
+
+/***/ }),
+
+/***/ "./src/js/components/socket/socketEvents.js":
+/*!**************************************************!*\
+  !*** ./src/js/components/socket/socketEvents.js ***!
+  \**************************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+
+
+/* harmony default export */ __webpack_exports__["default"] = ({
+  CONNECTION_ESTABLISHED: "connection established",
+  PLAYER_JOIN: "player connect",
+  PLAYER_LEAVE: "player disconnect"
+});
+
+/***/ }),
+
 /***/ "./src/js/scene/battleground/BattlegroundScene.js":
 /*!********************************************************!*\
   !*** ./src/js/scene/battleground/BattlegroundScene.js ***!
@@ -55700,6 +55727,8 @@ class SceneDirector {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _components_scene_Scene__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../../components/scene/Scene */ "./src/js/components/scene/Scene.js");
+/* harmony import */ var _components_socket_Socket__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../../components/socket/Socket */ "./src/js/components/socket/Socket.js");
+
 
 
 
@@ -55707,6 +55736,20 @@ __webpack_require__.r(__webpack_exports__);
 class BattlegroundScene extends _components_scene_Scene__WEBPACK_IMPORTED_MODULE_0__["default"] {
   constructor() {
     super();
+  }
+
+  init() {
+    const circs = {};
+    this.socket.on(_components_socket_Socket__WEBPACK_IMPORTED_MODULE_1__["default"].EVENT.PLAYER_JOIN, data => {
+      const pos = new PIXI.Point(Math.random() * this.renderer.width, Math.random() * this.renderer.height);
+      circs[data.playerId] = this.addChild(new PIXI.Graphics().beginFill(0xffffff).drawCircle(pos.x, pos.y, 20));
+      console.log(data.playerId + " connected");
+    });
+    this.socket.on(_components_socket_Socket__WEBPACK_IMPORTED_MODULE_1__["default"].EVENT.PLAYER_LEAVE, data => {
+      this.removeChild(circs[data.playerId]);
+      delete circs[data.playerId];
+      console.log(data.playerId + " disconnected");
+    });
   }
 
 }
@@ -55739,17 +55782,7 @@ class BootScene extends _components_scene_Scene__WEBPACK_IMPORTED_MODULE_0__["de
   }
 
   init() {
-    this._sprite = new PIXI.Sprite(this.resources["/assets/images/shaman.jpg"]);
-
-    this._sprite.anchor.set(0.5);
-
-    this._sprite.position.set(this.renderer.width * 0.5, this.renderer.height * 0.5);
-
-    this.addChild(this._sprite);
-  }
-
-  resize(width, height) {
-    this._sprite.position.set(width * 0.5, height * 0.5);
+    this.director.goTo("Battleground");
   }
 
 }

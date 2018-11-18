@@ -3,7 +3,7 @@
 import ResourceRegistry from "./components/ResourceRegistry";
 import ResourceLoader from "./components/ResourceLoader";
 import SceneDirector from "./components/scene/SceneDirector";
-import Socket from "./components/Socket";
+import Socket from "./components/socket/Socket";
 
 import BootScene from "./scene/boot/BootScene";
 import BattlegroundScene from "./scene/battleground/BattlegroundScene";
@@ -20,7 +20,9 @@ class Game extends PIXI.Application {
         this._setUpSceneDecorator();
         this._registerScenes();
 
-        this._sceneDirector.goTo("Boot");
+        this._socket.on(Socket.EVENT.CONNECTION_ESTABLISHED, () => {
+            this._sceneDirector.goTo("Boot");
+        });
     }
 
     refresh() {
