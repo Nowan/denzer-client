@@ -35,6 +35,12 @@ class SceneDirector {
         }
     }
 
+    resize(width, height) {
+        if (this._activeScene) {
+            this._activeScene.resize(width, height);
+        }
+    }
+
     onSceneCreate(scene) {
         // Overridden in Game class to insert scene.loader, scene.resources, scene.director properties
     }

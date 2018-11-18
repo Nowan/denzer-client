@@ -8,8 +8,8 @@ import BootScene from "./scene/boot/BootScene";
 import BattlegroundScene from "./scene/battleground/BattlegroundScene";
 
 class Game extends PIXI.Application {
-    constructor() {
-        super({ width: 800, height: 600 });
+    constructor(canvas) {
+        super({ width: canvas.width, height: canvas.height, view: canvas });
 
         this._resources = new ResourceRegistry();
         this._loader = new ResourceLoader(this._resources);
@@ -17,6 +17,7 @@ class Game extends PIXI.Application {
 
         const game = this;
         this._sceneDirector.onSceneCreate = (scene) => {
+            Object.defineProperty(scene, "renderer", {get: () => {return game.renderer}});
             Object.defineProperty(scene, "resources", {get: () => {return game._resources}});
             Object.defineProperty(scene, "loader", {get: () => {return game._loader}});
             Object.defineProperty(scene, "director", {get: () => {return game._sceneDirector}});
@@ -30,8 +31,9 @@ class Game extends PIXI.Application {
         this._sceneDirector.goTo("Boot");
     }
 
-    getCanvas() {
-        return this.view;
+    refresh() {
+        this.renderer.resize(this.view.width, this.view.height);
+        this._sceneDirector.resize(this.renderer.width, this.renderer.height);
     }
 }
 

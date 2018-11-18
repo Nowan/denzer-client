@@ -55418,10 +55418,11 @@ __webpack_require__.r(__webpack_exports__);
 
 
 class Game extends PIXI.Application {
-  constructor() {
+  constructor(canvas) {
     super({
-      width: 800,
-      height: 600
+      width: canvas.width,
+      height: canvas.height,
+      view: canvas
     });
     this._resources = new _components_ResourceRegistry__WEBPACK_IMPORTED_MODULE_0__["default"]();
     this._loader = new _components_ResourceLoader__WEBPACK_IMPORTED_MODULE_1__["default"](this._resources);
@@ -55429,6 +55430,11 @@ class Game extends PIXI.Application {
     const game = this;
 
     this._sceneDirector.onSceneCreate = scene => {
+      Object.defineProperty(scene, "renderer", {
+        get: () => {
+          return game.renderer;
+        }
+      });
       Object.defineProperty(scene, "resources", {
         get: () => {
           return game._resources;
@@ -55455,8 +55461,10 @@ class Game extends PIXI.Application {
     this._sceneDirector.goTo("Boot");
   }
 
-  getCanvas() {
-    return this.view;
+  refresh() {
+    this.renderer.resize(this.view.width, this.view.height);
+
+    this._sceneDirector.resize(this.renderer.width, this.renderer.height);
   }
 
 }
@@ -55524,13 +55532,18 @@ class ResourceRegistry {
   constructor() {}
 
   store(alias, resource) {
-    if (resource.isImage) {
-      this[alias] = resource.texture;
-    }
+    this[alias] = this._parseResource(resource);
   }
 
   contains(alias) {
     return !!this[alias];
+  }
+
+  _parseResource(resource) {
+    switch (resource.type) {
+      case PIXI.loaders.Resource.TYPE.IMAGE:
+        return resource.texture;
+    }
   }
 
 }
@@ -55554,6 +55567,8 @@ class Scene extends PIXI.Container {
   constructor() {
     super(); // References inserted to scene immediately after its creation
 
+    this.renderer = null; // PIXI renderer
+
     this.resources = null; // ResourceRegistry
 
     this.loader = null; // ResourceLoader
@@ -55570,6 +55585,8 @@ class Scene extends PIXI.Container {
   init() {}
 
   destroy() {}
+
+  resize(width, height) {}
 
 }
 
@@ -55622,6 +55639,12 @@ class SceneDirector {
       });
     } else {
       console.error("Scene alias \"" + alias + "\" is not registered.");
+    }
+  }
+
+  resize(width, height) {
+    if (this._activeScene) {
+      this._activeScene.resize(width, height);
     }
   }
 
@@ -55683,8 +55706,17 @@ class BootScene extends _components_scene_Scene__WEBPACK_IMPORTED_MODULE_0__["de
   }
 
   init() {
-    const sprite = new PIXI.Sprite(this.resources["/assets/images/shaman.jpg"]);
-    this.addChild(sprite);
+    this._sprite = new PIXI.Sprite(this.resources["/assets/images/shaman.jpg"]);
+
+    this._sprite.anchor.set(0.5);
+
+    this._sprite.position.set(this.renderer.width * 0.5, this.renderer.height * 0.5);
+
+    this.addChild(this._sprite);
+  }
+
+  resize(width, height) {
+    this._sprite.position.set(width * 0.5, height * 0.5);
   }
 
 }

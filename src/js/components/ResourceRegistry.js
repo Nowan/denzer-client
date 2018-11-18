@@ -6,13 +6,18 @@ class ResourceRegistry {
     }
     
     store(alias, resource) {
-        if (resource.isImage) {
-            this[alias] = resource.texture;
-        }
+        this[alias] = this._parseResource(resource);
     }
 
     contains(alias) {
         return !!this[alias];
+    }
+
+    _parseResource(resource) {
+        switch (resource.type) {
+            case PIXI.loaders.Resource.TYPE.IMAGE:
+                return resource.texture;
+        }
     }
 }
 

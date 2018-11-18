@@ -5,6 +5,7 @@ class Scene extends PIXI.Container {
         super();
         
         // References inserted to scene immediately after its creation
+        this.renderer = null; // PIXI renderer
         this.resources = null; // ResourceRegistry
         this.loader = null; // ResourceLoader
         this.director = null; // SceneDirector
@@ -21,6 +22,10 @@ class Scene extends PIXI.Container {
     }
 
     destroy() {
+
+    }
+
+    resize(width, height) {
 
     }
 }
