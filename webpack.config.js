@@ -2,6 +2,7 @@ const path = require('path');
 const webpack = require('webpack');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
+const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 
 const MODULE_PATH = {
     PIXI: path.join(__dirname, 'node_modules', 'pixi.js'),
@@ -22,7 +23,10 @@ module.exports = {
         }),
         new CopyWebpackPlugin([
             { from:'./src/assets', to: 'assets' } 
-        ]), 
+        ]),
+        new MiniCssExtractPlugin({
+            filename: "app.bundle.css"
+        })
     ],
     module: {
        rules: [
@@ -37,6 +41,19 @@ module.exports = {
                         ]
                     }
                 }
+            },
+            {
+                test: /\.scss$/,
+                use: [
+                    MiniCssExtractPlugin.loader,
+                    "css-loader",
+                    {
+                        loader: "sass-loader",
+                        options: { 
+                            include: path.resolve(__dirname, "src/styles")
+                        }
+                    }
+                ]
             },
             { 
                 test: /\.json$/, 

@@ -55354,6 +55354,17 @@ module.exports = yeast;
 
 /***/ }),
 
+/***/ "./src/css/game.scss":
+/*!***************************!*\
+  !*** ./src/css/game.scss ***!
+  \***************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+// extracted by mini-css-extract-plugin
+
+/***/ }),
+
 /***/ "./src/index.js":
 /*!**********************!*\
   !*** ./src/index.js ***!
@@ -55368,6 +55379,9 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var socket_io__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! socket.io */ "./node_modules/socket.io-client/lib/index.js-exposed");
 /* harmony import */ var socket_io__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(socket_io__WEBPACK_IMPORTED_MODULE_1__);
 /* harmony import */ var _js_Game__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./js/Game */ "./src/js/Game.js");
+/* harmony import */ var _css_game_scss__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./css/game.scss */ "./src/css/game.scss");
+/* harmony import */ var _css_game_scss__WEBPACK_IMPORTED_MODULE_3___default = /*#__PURE__*/__webpack_require__.n(_css_game_scss__WEBPACK_IMPORTED_MODULE_3__);
+
 
 
 
