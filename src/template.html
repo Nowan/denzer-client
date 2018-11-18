@@ -11,12 +11,11 @@
         <script>
             const canvas = document.getElementById("gameCanvas");
             const game = new Game(canvas);
-            game.init();
 
-            window.addEventListener("resize", resizeCanvas, false);
-            resizeCanvas();
+            window.addEventListener("resize", onResize);
+            onResize();
 
-            function resizeCanvas() {
+            function onResize() {
                 canvas.width = window.innerWidth;
                 canvas.height = window.innerHeight;
                 game.refresh();

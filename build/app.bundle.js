@@ -55376,22 +55376,14 @@ module.exports = yeast;
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var pixi_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! pixi.js */ "./node_modules/pixi.js/lib/index.js-exposed");
 /* harmony import */ var pixi_js__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(pixi_js__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var socket_io__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! socket.io */ "./node_modules/socket.io-client/lib/index.js-exposed");
-/* harmony import */ var socket_io__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(socket_io__WEBPACK_IMPORTED_MODULE_1__);
-/* harmony import */ var _js_Game__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./js/Game */ "./src/js/Game.js");
-/* harmony import */ var _css_game_scss__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./css/game.scss */ "./src/css/game.scss");
-/* harmony import */ var _css_game_scss__WEBPACK_IMPORTED_MODULE_3___default = /*#__PURE__*/__webpack_require__.n(_css_game_scss__WEBPACK_IMPORTED_MODULE_3__);
-
+/* harmony import */ var _js_Game__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./js/Game */ "./src/js/Game.js");
+/* harmony import */ var _css_game_scss__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./css/game.scss */ "./src/css/game.scss");
+/* harmony import */ var _css_game_scss__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__webpack_require__.n(_css_game_scss__WEBPACK_IMPORTED_MODULE_2__);
 
 
 
 window.PIXI = pixi_js__WEBPACK_IMPORTED_MODULE_0__;
-
-window.Socket = function () {
-  return socket_io__WEBPACK_IMPORTED_MODULE_1__();
-};
-
-window.Game = _js_Game__WEBPACK_IMPORTED_MODULE_2__["default"];
+window.Game = _js_Game__WEBPACK_IMPORTED_MODULE_1__["default"];
 
 /***/ }),
 
@@ -55407,8 +55399,10 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _components_ResourceRegistry__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./components/ResourceRegistry */ "./src/js/components/ResourceRegistry.js");
 /* harmony import */ var _components_ResourceLoader__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./components/ResourceLoader */ "./src/js/components/ResourceLoader.js");
 /* harmony import */ var _components_scene_SceneDirector__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./components/scene/SceneDirector */ "./src/js/components/scene/SceneDirector.js");
-/* harmony import */ var _scene_boot_BootScene__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./scene/boot/BootScene */ "./src/js/scene/boot/BootScene.js");
-/* harmony import */ var _scene_battleground_BattlegroundScene__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./scene/battleground/BattlegroundScene */ "./src/js/scene/battleground/BattlegroundScene.js");
+/* harmony import */ var _components_Socket__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./components/Socket */ "./src/js/components/Socket.js");
+/* harmony import */ var _scene_boot_BootScene__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./scene/boot/BootScene */ "./src/js/scene/boot/BootScene.js");
+/* harmony import */ var _scene_battleground_BattlegroundScene__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./scene/battleground/BattlegroundScene */ "./src/js/scene/battleground/BattlegroundScene.js");
+
 
 
 
@@ -55427,6 +55421,28 @@ class Game extends PIXI.Application {
     this._resources = new _components_ResourceRegistry__WEBPACK_IMPORTED_MODULE_0__["default"]();
     this._loader = new _components_ResourceLoader__WEBPACK_IMPORTED_MODULE_1__["default"](this._resources);
     this._sceneDirector = new _components_scene_SceneDirector__WEBPACK_IMPORTED_MODULE_2__["default"](this.stage);
+    this._socket = new _components_Socket__WEBPACK_IMPORTED_MODULE_3__["default"]();
+
+    this._setUpSceneDecorator();
+
+    this._registerScenes();
+
+    this._sceneDirector.goTo("Boot");
+  }
+
+  refresh() {
+    this.renderer.resize(this.view.width, this.view.height);
+
+    this._sceneDirector.resize(this.renderer.width, this.renderer.height);
+  }
+
+  _registerScenes() {
+    this._sceneDirector.register("Boot", _scene_boot_BootScene__WEBPACK_IMPORTED_MODULE_4__["default"]);
+
+    this._sceneDirector.register("Battleground", _scene_battleground_BattlegroundScene__WEBPACK_IMPORTED_MODULE_5__["default"]);
+  }
+
+  _setUpSceneDecorator() {
     const game = this;
 
     this._sceneDirector.onSceneCreate = scene => {
@@ -55450,21 +55466,12 @@ class Game extends PIXI.Application {
           return game._sceneDirector;
         }
       });
+      Object.defineProperty(scene, "socket", {
+        get: () => {
+          return game._socket;
+        }
+      });
     };
-  }
-
-  init() {
-    this._sceneDirector.register("Boot", _scene_boot_BootScene__WEBPACK_IMPORTED_MODULE_3__["default"]);
-
-    this._sceneDirector.register("Battleground", _scene_battleground_BattlegroundScene__WEBPACK_IMPORTED_MODULE_4__["default"]);
-
-    this._sceneDirector.goTo("Boot");
-  }
-
-  refresh() {
-    this.renderer.resize(this.view.width, this.view.height);
-
-    this._sceneDirector.resize(this.renderer.width, this.renderer.height);
   }
 
 }
@@ -55549,6 +55556,32 @@ class ResourceRegistry {
 }
 
 /* harmony default export */ __webpack_exports__["default"] = (ResourceRegistry);
+
+/***/ }),
+
+/***/ "./src/js/components/Socket.js":
+/*!*************************************!*\
+  !*** ./src/js/components/Socket.js ***!
+  \*************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */ var socket_io__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! socket.io */ "./node_modules/socket.io-client/lib/index.js-exposed");
+/* harmony import */ var socket_io__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(socket_io__WEBPACK_IMPORTED_MODULE_0__);
+
+
+
+
+class Socket {
+  constructor() {
+    socket_io__WEBPACK_IMPORTED_MODULE_0__["call"](this);
+  }
+
+}
+
+/* harmony default export */ __webpack_exports__["default"] = (Socket);
 
 /***/ }),
 
