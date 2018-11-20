@@ -1,6 +1,7 @@
 "use strict";
 
 import Scene from "../../components/scene/Scene";
+import Socket from "../../components/socket/Socket";
 
 class BootScene extends Scene {
     constructor() {
@@ -12,12 +13,17 @@ class BootScene extends Scene {
             "/assets/images/shaman.jpg", 
             "/assets/images/barbarian.jpg", 
             "/assets/images/dwarf.jpg", 
-            "/assets/images/ninja.jpg"
+            "/assets/images/ninja.jpg",
+            "/assets/images/grassfield.json"
         );
     }
 
     init() {
-        this.director.goTo("Battleground");
+        this.socket.on(Socket.EVENT.ROOM_FOUND, ((data) => {
+            this.director.goTo("Battleground", [data.map]);
+        }).bind(this));
+
+        this.socket.emit(Socket.EVENT.FIND_ROOM);
     }
 }
 

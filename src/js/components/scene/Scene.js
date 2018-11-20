@@ -17,7 +17,7 @@ class Scene extends PIXI.Container {
         });
     }
 
-    init() {
+    init(args) {
         
     }
 

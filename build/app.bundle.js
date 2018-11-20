@@ -10651,6 +10651,937 @@ module.exports = setPrecision;
 
 /***/ }),
 
+/***/ "./node_modules/pixi-tilemap/dist/pixi-tilemap.js":
+/*!********************************************************!*\
+  !*** ./node_modules/pixi-tilemap/dist/pixi-tilemap.js ***!
+  \********************************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+var pixi_tilemap;
+(function (pixi_tilemap) {
+    var CanvasTileRenderer = (function () {
+        function CanvasTileRenderer(renderer) {
+            this.tileAnim = [0, 0];
+            this.dontUseTransform = false;
+            this.renderer = renderer;
+            this.tileAnim = [0, 0];
+        }
+        return CanvasTileRenderer;
+    }());
+    pixi_tilemap.CanvasTileRenderer = CanvasTileRenderer;
+    PIXI.CanvasRenderer.registerPlugin('tilemap', CanvasTileRenderer);
+})(pixi_tilemap || (pixi_tilemap = {}));
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = Object.setPrototypeOf ||
+        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
+var pixi_tilemap;
+(function (pixi_tilemap) {
+    var CompositeRectTileLayer = (function (_super) {
+        __extends(CompositeRectTileLayer, _super);
+        function CompositeRectTileLayer(zIndex, bitmaps, texPerChild) {
+            var _this = _super.call(this) || this;
+            _this.modificationMarker = 0;
+            _this.shadowColor = new Float32Array([0.0, 0.0, 0.0, 0.5]);
+            _this._globalMat = null;
+            _this.initialize.apply(_this, arguments);
+            return _this;
+        }
+        CompositeRectTileLayer.prototype.updateTransform = function () {
+            _super.prototype.displayObjectUpdateTransform.call(this);
+        };
+        CompositeRectTileLayer.prototype.initialize = function (zIndex, bitmaps, texPerChild) {
+            if (texPerChild === true) {
+                texPerChild = 0;
+            }
+            this.z = this.zIndex = zIndex;
+            this.texPerChild = texPerChild || pixi_tilemap.Constant.boundCountPerBuffer * pixi_tilemap.Constant.maxTextures;
+            if (bitmaps) {
+                this.setBitmaps(bitmaps);
+            }
+        };
+        CompositeRectTileLayer.prototype.setBitmaps = function (bitmaps) {
+            var texPerChild = this.texPerChild;
+            var len1 = this.children.length;
+            var len2 = Math.ceil(bitmaps.length / texPerChild);
+            var i;
+            for (i = 0; i < len1; i++) {
+                this.children[i].textures = bitmaps.slice(i * texPerChild, (i + 1) * texPerChild);
+            }
+            for (i = len1; i < len2; i++) {
+                var layer = new pixi_tilemap.RectTileLayer(this.zIndex, bitmaps.slice(i * texPerChild, (i + 1) * texPerChild));
+                layer.compositeParent = true;
+                layer.offsetX = pixi_tilemap.Constant.boundSize;
+                layer.offsetY = pixi_tilemap.Constant.boundSize;
+                this.addChild(layer);
+            }
+        };
+        CompositeRectTileLayer.prototype.clear = function () {
+            for (var i = 0; i < this.children.length; i++) {
+                this.children[i].clear();
+            }
+            this.modificationMarker = 0;
+        };
+        CompositeRectTileLayer.prototype.addRect = function (textureIndex, u, v, x, y, tileWidth, tileHeight) {
+            var childIndex = textureIndex / this.texPerChild >> 0;
+            var textureId = textureIndex % this.texPerChild;
+            if (this.children[childIndex] && this.children[childIndex].textures) {
+                this.children[childIndex].addRect(textureId, u, v, x, y, tileWidth, tileHeight);
+            }
+        };
+        CompositeRectTileLayer.prototype.addFrame = function (texture_, x, y, animX, animY) {
+            var texture;
+            var layer = null;
+            var ind = 0;
+            var children = this.children;
+            if (typeof texture_ === "number") {
+                var childIndex = texture_ / this.texPerChild >> 0;
+                layer = children[childIndex];
+                if (!layer) {
+                    layer = children[0];
+                    if (!layer) {
+                        return false;
+                    }
+                    ind = 0;
+                }
+                else {
+                    ind = texture_ % this.texPerChild;
+                }
+                texture = layer.textures[ind];
+            }
+            else {
+                if (typeof texture_ === "string") {
+                    texture = PIXI.Texture.fromImage(texture_);
+                }
+                else {
+                    texture = texture_;
+                }
+                for (var i = 0; i < children.length; i++) {
+                    var child = children[i];
+                    var tex = child.textures;
+                    for (var j = 0; j < tex.length; j++) {
+                        if (tex[j].baseTexture === texture.baseTexture) {
+                            layer = child;
+                            ind = j;
+                            break;
+                        }
+                    }
+                    if (layer) {
+                        break;
+                    }
+                }
+                if (!layer) {
+                    for (i = 0; i < children.length; i++) {
+                        var child = children[i];
+                        if (child.textures.length < this.texPerChild) {
+                            layer = child;
+                            ind = child.textures.length;
+                            child.textures.push(texture);
+                            break;
+                        }
+                    }
+                    if (!layer) {
+                        layer = new pixi_tilemap.RectTileLayer(this.zIndex, texture);
+                        layer.compositeParent = true;
+                        layer.offsetX = pixi_tilemap.Constant.boundSize;
+                        layer.offsetY = pixi_tilemap.Constant.boundSize;
+                        children.push(layer);
+                        ind = 0;
+                    }
+                }
+            }
+            layer.addRect(ind, texture.frame.x, texture.frame.y, x, y, texture.frame.width, texture.frame.height, animX, animY);
+            return true;
+        };
+        CompositeRectTileLayer.prototype.renderCanvas = function (renderer) {
+            if (!this.visible || this.worldAlpha <= 0 || !this.renderable) {
+                return;
+            }
+            var plugin = renderer.plugins.tilemap;
+            if (!plugin.dontUseTransform) {
+                var wt = this.worldTransform;
+                renderer.context.setTransform(wt.a, wt.b, wt.c, wt.d, wt.tx * renderer.resolution, wt.ty * renderer.resolution);
+            }
+            var layers = this.children;
+            for (var i = 0; i < layers.length; i++) {
+                layers[i].renderCanvasCore(renderer);
+            }
+        };
+        CompositeRectTileLayer.prototype.renderWebGL = function (renderer) {
+            if (!this.visible || this.worldAlpha <= 0 || !this.renderable) {
+                return;
+            }
+            var gl = renderer.gl;
+            var plugin = renderer.plugins.tilemap;
+            var shader = plugin.getShader();
+            renderer.setObjectRenderer(plugin);
+            renderer.bindShader(shader);
+            this._globalMat = this._globalMat || new PIXI.Matrix();
+            renderer._activeRenderTarget.projectionMatrix.copy(this._globalMat).append(this.worldTransform);
+            shader.uniforms.projectionMatrix = this._globalMat.toArray(true);
+            shader.uniforms.shadowColor = this.shadowColor;
+            var af = shader.uniforms.animationFrame = plugin.tileAnim;
+            var layers = this.children;
+            for (var i = 0; i < layers.length; i++) {
+                layers[i].renderWebGLCore(renderer, plugin);
+            }
+        };
+        CompositeRectTileLayer.prototype.isModified = function (anim) {
+            var layers = this.children;
+            if (this.modificationMarker !== layers.length) {
+                return true;
+            }
+            for (var i = 0; i < layers.length; i++) {
+                if (layers[i].isModified(anim)) {
+                    return true;
+                }
+            }
+            return false;
+        };
+        CompositeRectTileLayer.prototype.clearModify = function () {
+            var layers = this.children;
+            this.modificationMarker = layers.length;
+            for (var i = 0; i < layers.length; i++) {
+                layers[i].clearModify();
+            }
+        };
+        return CompositeRectTileLayer;
+    }(PIXI.Container));
+    pixi_tilemap.CompositeRectTileLayer = CompositeRectTileLayer;
+})(pixi_tilemap || (pixi_tilemap = {}));
+var pixi_tilemap;
+(function (pixi_tilemap) {
+    pixi_tilemap.Constant = {
+        maxTextures: 4,
+        bufferSize: 2048,
+        boundSize: 1024,
+        boundCountPerBuffer: 4,
+    };
+})(pixi_tilemap || (pixi_tilemap = {}));
+var pixi_tilemap;
+(function (pixi_tilemap) {
+    var GraphicsLayer = (function (_super) {
+        __extends(GraphicsLayer, _super);
+        function GraphicsLayer(zIndex) {
+            var _this = _super.call(this) || this;
+            _this.z = _this.zIndex = zIndex;
+            return _this;
+        }
+        GraphicsLayer.prototype.renderCanvas = function (renderer) {
+            var wt = null;
+            if (renderer.plugins.tilemap.dontUseTransform) {
+                wt = this.transform.worldTransform;
+                this.transform.worldTransform = PIXI.Matrix.IDENTITY;
+            }
+            renderer.plugins.graphics.render(this);
+            if (renderer.plugins.tilemap.dontUseTransform) {
+                this.transform.worldTransform = wt;
+            }
+            renderer.context.globalAlpha = 1.0;
+        };
+        GraphicsLayer.prototype.renderWebGL = function (renderer) {
+            if (!this._webGL[renderer.CONTEXT_UID])
+                this.dirty++;
+            _super.prototype.renderWebGL.call(this, renderer);
+        };
+        GraphicsLayer.prototype.isModified = function (anim) {
+            return false;
+        };
+        GraphicsLayer.prototype.clearModify = function () {
+        };
+        return GraphicsLayer;
+    }(PIXI.Graphics));
+})(pixi_tilemap || (pixi_tilemap = {}));
+var pixi_tilemap;
+(function (pixi_tilemap) {
+    var RectTileLayer = (function (_super) {
+        __extends(RectTileLayer, _super);
+        function RectTileLayer(zIndex, texture) {
+            var _this = _super.call(this) || this;
+            _this.z = 0;
+            _this.zIndex = 0;
+            _this.modificationMarker = 0;
+            _this.shadowColor = new Float32Array([0.0, 0.0, 0.0, 0.5]);
+            _this._globalMat = null;
+            _this.pointsBuf = [];
+            _this.hasAnim = false;
+            _this.offsetX = 0;
+            _this.offsetY = 0;
+            _this.compositeParent = false;
+            _this.vbId = 0;
+            _this.vbBuffer = null;
+            _this.vbArray = null;
+            _this.vbInts = null;
+            _this.initialize(zIndex, texture);
+            return _this;
+        }
+        RectTileLayer.prototype.updateTransform = function () {
+            _super.prototype.displayObjectUpdateTransform.call(this);
+        };
+        RectTileLayer.prototype.initialize = function (zIndex, textures) {
+            if (!textures) {
+                textures = [];
+            }
+            else if (!(textures instanceof Array) && textures.baseTexture) {
+                textures = [textures];
+            }
+            this.textures = textures;
+            this.z = this.zIndex = zIndex;
+        };
+        RectTileLayer.prototype.clear = function () {
+            this.pointsBuf.length = 0;
+            this.modificationMarker = 0;
+            this.hasAnim = false;
+        };
+        RectTileLayer.prototype.addFrame = function (texture_, x, y, animX, animY) {
+            var texture;
+            var textureIndex = 0;
+            if (typeof texture_ === "number") {
+                textureIndex = texture_;
+                texture = this.textures[textureIndex];
+            }
+            else {
+                if (typeof texture_ === "string") {
+                    texture = PIXI.Texture.fromImage(texture_);
+                }
+                else {
+                    texture = texture_;
+                }
+                var found = false;
+                var textureList = this.textures;
+                for (var i = 0; i < textureList.length; i++) {
+                    if (textureList[i].baseTexture === texture.baseTexture) {
+                        textureIndex = i;
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) {
+                    return false;
+                }
+            }
+            this.addRect(textureIndex, texture.frame.x, texture.frame.y, x, y, texture.frame.width, texture.frame.height, animX, animY);
+            return true;
+        };
+        RectTileLayer.prototype.addRect = function (textureIndex, u, v, x, y, tileWidth, tileHeight, animX, animY) {
+            if (animX === void 0) { animX = 0; }
+            if (animY === void 0) { animY = 0; }
+            var pb = this.pointsBuf;
+            this.hasAnim = this.hasAnim || animX > 0 || animY > 0;
+            if (tileWidth === tileHeight) {
+                pb.push(u);
+                pb.push(v);
+                pb.push(x);
+                pb.push(y);
+                pb.push(tileWidth);
+                pb.push(tileHeight);
+                pb.push(animX | 0);
+                pb.push(animY | 0);
+                pb.push(textureIndex);
+            }
+            else {
+                var i;
+                if (tileWidth % tileHeight === 0) {
+                    for (i = 0; i < tileWidth / tileHeight; i++) {
+                        pb.push(u + i * tileHeight);
+                        pb.push(v);
+                        pb.push(x + i * tileHeight);
+                        pb.push(y);
+                        pb.push(tileHeight);
+                        pb.push(tileHeight);
+                        pb.push(animX | 0);
+                        pb.push(animY | 0);
+                        pb.push(textureIndex);
+                    }
+                }
+                else if (tileHeight % tileWidth === 0) {
+                    for (i = 0; i < tileHeight / tileWidth; i++) {
+                        pb.push(u);
+                        pb.push(v + i * tileWidth);
+                        pb.push(x);
+                        pb.push(y + i * tileWidth);
+                        pb.push(tileWidth);
+                        pb.push(tileWidth);
+                        pb.push(animX | 0);
+                        pb.push(animY | 0);
+                        pb.push(textureIndex);
+                    }
+                }
+                else {
+                    pb.push(u);
+                    pb.push(v);
+                    pb.push(x);
+                    pb.push(y);
+                    pb.push(tileWidth);
+                    pb.push(tileHeight);
+                    pb.push(animX | 0);
+                    pb.push(animY | 0);
+                    pb.push(textureIndex);
+                }
+            }
+        };
+        RectTileLayer.prototype.renderCanvas = function (renderer) {
+            var plugin = renderer.plugins.tilemap;
+            if (!plugin.dontUseTransform) {
+                var wt = this.worldTransform;
+                renderer.context.setTransform(wt.a, wt.b, wt.c, wt.d, wt.tx * renderer.resolution, wt.ty * renderer.resolution);
+            }
+            this.renderCanvasCore(renderer);
+        };
+        RectTileLayer.prototype.renderCanvasCore = function (renderer) {
+            if (this.textures.length === 0)
+                return;
+            var points = this.pointsBuf;
+            renderer.context.fillStyle = '#000000';
+            for (var i = 0, n = points.length; i < n; i += 9) {
+                var x1 = points[i], y1 = points[i + 1];
+                var x2 = points[i + 2], y2 = points[i + 3];
+                var w = points[i + 4];
+                var h = points[i + 5];
+                x1 += points[i + 6] * renderer.plugins.tilemap.tileAnim[0];
+                y1 += points[i + 7] * renderer.plugins.tilemap.tileAnim[1];
+                var textureIndex = points[i + 8];
+                if (textureIndex >= 0) {
+                    renderer.context.drawImage(this.textures[textureIndex].baseTexture.source, x1, y1, w, h, x2, y2, w, h);
+                }
+                else {
+                    renderer.context.globalAlpha = 0.5;
+                    renderer.context.fillRect(x2, y2, w, h);
+                    renderer.context.globalAlpha = 1;
+                }
+            }
+        };
+        RectTileLayer.prototype.renderWebGL = function (renderer) {
+            var gl = renderer.gl;
+            var plugin = renderer.plugins.simpleTilemap;
+            var shader = plugin.getShader();
+            renderer.setObjectRenderer(plugin);
+            renderer.bindShader(shader);
+            this._globalMat = this._globalMat || new PIXI.Matrix();
+            renderer._activeRenderTarget.projectionMatrix.copy(this._globalMat).append(this.worldTransform);
+            shader.uniforms.projectionMatrix = this._globalMat.toArray(true);
+            shader.uniforms.shadowColor = this.shadowColor;
+            var af = shader.uniforms.animationFrame = plugin.tileAnim;
+            this.renderWebGLCore(renderer, plugin);
+        };
+        RectTileLayer.prototype.renderWebGLCore = function (renderer, plugin) {
+            var points = this.pointsBuf;
+            if (points.length === 0)
+                return;
+            var rectsCount = points.length / 9;
+            var tile = plugin || renderer.plugins.simpleTilemap;
+            var gl = renderer.gl;
+            tile.checkIndexBuffer(rectsCount);
+            var shader = tile.getShader();
+            var textures = this.textures;
+            if (textures.length === 0)
+                return;
+            tile.bindTextures(renderer, shader, textures);
+            var vb = tile.getVb(this.vbId);
+            if (!vb) {
+                vb = tile.createVb();
+                this.vbId = vb.id;
+                this.vbBuffer = null;
+                this.modificationMarker = 0;
+            }
+            var vao = vb.vao;
+            renderer.bindVao(vao);
+            var vertexBuf = vb.vb;
+            vertexBuf.bind();
+            var vertices = rectsCount * shader.vertPerQuad;
+            if (vertices === 0)
+                return;
+            if (this.modificationMarker !== vertices) {
+                this.modificationMarker = vertices;
+                var vs = shader.stride * vertices;
+                if (!this.vbBuffer || this.vbBuffer.byteLength < vs) {
+                    var bk = shader.stride;
+                    while (bk < vs) {
+                        bk *= 2;
+                    }
+                    this.vbBuffer = new ArrayBuffer(bk);
+                    this.vbArray = new Float32Array(this.vbBuffer);
+                    this.vbInts = new Uint32Array(this.vbBuffer);
+                    vertexBuf.upload(this.vbBuffer, 0, true);
+                }
+                var arr = this.vbArray, ints = this.vbInts;
+                var sz = 0;
+                var textureId = 0;
+                var shiftU = this.offsetX;
+                var shiftV = this.offsetY;
+                var tint = -1;
+                for (var i = 0; i < points.length; i += 9) {
+                    var eps = 0.5;
+                    if (this.compositeParent) {
+                        textureId = (points[i + 8] >> 2);
+                        shiftU = this.offsetX * (points[i + 8] & 1);
+                        shiftV = this.offsetY * ((points[i + 8] >> 1) & 1);
+                    }
+                    var x = points[i + 2], y = points[i + 3];
+                    var w = points[i + 4], h = points[i + 5];
+                    var u = points[i] + shiftU, v = points[i + 1] + shiftV;
+                    var animX = points[i + 6], animY = points[i + 7];
+                    arr[sz++] = x;
+                    arr[sz++] = y;
+                    arr[sz++] = u;
+                    arr[sz++] = v;
+                    arr[sz++] = u + eps;
+                    arr[sz++] = v + eps;
+                    arr[sz++] = u + w - eps;
+                    arr[sz++] = v + h - eps;
+                    arr[sz++] = animX;
+                    arr[sz++] = animY;
+                    arr[sz++] = textureId;
+                    arr[sz++] = x + w;
+                    arr[sz++] = y;
+                    arr[sz++] = u + w;
+                    arr[sz++] = v;
+                    arr[sz++] = u + eps;
+                    arr[sz++] = v + eps;
+                    arr[sz++] = u + w - eps;
+                    arr[sz++] = v + h - eps;
+                    arr[sz++] = animX;
+                    arr[sz++] = animY;
+                    arr[sz++] = textureId;
+                    arr[sz++] = x + w;
+                    arr[sz++] = y + h;
+                    arr[sz++] = u + w;
+                    arr[sz++] = v + h;
+                    arr[sz++] = u + eps;
+                    arr[sz++] = v + eps;
+                    arr[sz++] = u + w - eps;
+                    arr[sz++] = v + h - eps;
+                    arr[sz++] = animX;
+                    arr[sz++] = animY;
+                    arr[sz++] = textureId;
+                    arr[sz++] = x;
+                    arr[sz++] = y + h;
+                    arr[sz++] = u;
+                    arr[sz++] = v + h;
+                    arr[sz++] = u + eps;
+                    arr[sz++] = v + eps;
+                    arr[sz++] = u + w - eps;
+                    arr[sz++] = v + h - eps;
+                    arr[sz++] = animX;
+                    arr[sz++] = animY;
+                    arr[sz++] = textureId;
+                }
+                vertexBuf.upload(arr, 0, true);
+            }
+            gl.drawElements(gl.TRIANGLES, rectsCount * 6, gl.UNSIGNED_SHORT, 0);
+        };
+        RectTileLayer.prototype.isModified = function (anim) {
+            if (this.modificationMarker !== this.pointsBuf.length ||
+                anim && this.hasAnim) {
+                return true;
+            }
+            return false;
+        };
+        RectTileLayer.prototype.clearModify = function () {
+            this.modificationMarker = this.pointsBuf.length;
+        };
+        return RectTileLayer;
+    }(PIXI.Container));
+    pixi_tilemap.RectTileLayer = RectTileLayer;
+})(pixi_tilemap || (pixi_tilemap = {}));
+var pixi_tilemap;
+(function (pixi_tilemap) {
+    var rectShaderFrag = "\nvarying vec2 vTextureCoord;\nvarying vec4 vFrame;\nvarying float vTextureId;\nuniform vec4 shadowColor;\nuniform sampler2D uSamplers[%count%];\nuniform vec2 uSamplerSize[%count%];\n\nvoid main(void){\n   vec2 textureCoord = clamp(vTextureCoord, vFrame.xy, vFrame.zw);\n   float textureId = floor(vTextureId + 0.5);\n\n   vec4 color;\n   %forloop%\n   gl_FragColor = color;\n}\n";
+    var rectShaderVert = "\nattribute vec2 aVertexPosition;\nattribute vec2 aTextureCoord;\nattribute vec4 aFrame;\nattribute vec2 aAnim;\nattribute float aTextureId;\n\nuniform mat3 projectionMatrix;\nuniform vec2 animationFrame;\n\nvarying vec2 vTextureCoord;\nvarying float vTextureId;\nvarying vec4 vFrame;\n\nvoid main(void){\n   gl_Position = vec4((projectionMatrix * vec3(aVertexPosition, 1.0)).xy, 0.0, 1.0);\n   vec2 anim = aAnim * animationFrame;\n   vTextureCoord = aTextureCoord + anim;\n   vFrame = aFrame + vec4(anim, anim);\n   vTextureId = aTextureId;\n}\n";
+    var TilemapShader = (function (_super) {
+        __extends(TilemapShader, _super);
+        function TilemapShader(gl, maxTextures, shaderVert, shaderFrag) {
+            var _this = _super.call(this, gl, shaderVert, shaderFrag) || this;
+            _this.maxTextures = 0;
+            _this.maxTextures = maxTextures;
+            pixi_tilemap.shaderGenerator.fillSamplers(_this, _this.maxTextures);
+            return _this;
+        }
+        return TilemapShader;
+    }(PIXI.Shader));
+    pixi_tilemap.TilemapShader = TilemapShader;
+    var RectTileShader = (function (_super) {
+        __extends(RectTileShader, _super);
+        function RectTileShader(gl, maxTextures) {
+            var _this = _super.call(this, gl, maxTextures, rectShaderVert, pixi_tilemap.shaderGenerator.generateFragmentSrc(maxTextures, rectShaderFrag)) || this;
+            _this.vertSize = 11;
+            _this.vertPerQuad = 4;
+            _this.stride = _this.vertSize * 4;
+            pixi_tilemap.shaderGenerator.fillSamplers(_this, _this.maxTextures);
+            return _this;
+        }
+        RectTileShader.prototype.createVao = function (renderer, vb) {
+            var gl = renderer.gl;
+            return renderer.createVao()
+                .addIndex(this.indexBuffer)
+                .addAttribute(vb, this.attributes.aVertexPosition, gl.FLOAT, false, this.stride, 0)
+                .addAttribute(vb, this.attributes.aTextureCoord, gl.FLOAT, false, this.stride, 2 * 4)
+                .addAttribute(vb, this.attributes.aFrame, gl.FLOAT, false, this.stride, 4 * 4)
+                .addAttribute(vb, this.attributes.aAnim, gl.FLOAT, false, this.stride, 8 * 4)
+                .addAttribute(vb, this.attributes.aTextureId, gl.FLOAT, false, this.stride, 10 * 4);
+        };
+        return RectTileShader;
+    }(TilemapShader));
+    pixi_tilemap.RectTileShader = RectTileShader;
+})(pixi_tilemap || (pixi_tilemap = {}));
+var pixi_tilemap;
+(function (pixi_tilemap) {
+    var glCore = PIXI.glCore;
+    function _hackSubImage(tex, sprite, clearBuffer, clearWidth, clearHeight) {
+        var gl = tex.gl;
+        var baseTex = sprite.texture.baseTexture;
+        if (clearBuffer && clearWidth > 0 && clearHeight > 0) {
+            gl.texSubImage2D(gl.TEXTURE_2D, 0, sprite.position.x, sprite.position.y, clearWidth, clearHeight, tex.format, tex.type, clearBuffer);
+        }
+        gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, 1);
+        gl.texSubImage2D(gl.TEXTURE_2D, 0, sprite.position.x, sprite.position.y, tex.format, tex.type, baseTex.source);
+    }
+    var TileRenderer = (function (_super) {
+        __extends(TileRenderer, _super);
+        function TileRenderer(renderer) {
+            var _this = _super.call(this, renderer) || this;
+            _this.vbs = {};
+            _this.indices = new Uint16Array(0);
+            _this.lastTimeCheck = 0;
+            _this.tileAnim = [0, 0];
+            _this.texLoc = [];
+            return _this;
+        }
+        TileRenderer.prototype.onContextChange = function () {
+            var gl = this.renderer.gl;
+            var maxTextures = pixi_tilemap.Constant.maxTextures;
+            this.rectShader = new pixi_tilemap.RectTileShader(gl, maxTextures);
+            this.checkIndexBuffer(2000);
+            this.rectShader.indexBuffer = this.indexBuffer;
+            this.vbs = {};
+            this.glTextures = [];
+            this.boundSprites = [];
+            this.initBounds();
+        };
+        TileRenderer.prototype.initBounds = function () {
+            var gl = this.renderer.gl;
+            var maxTextures = pixi_tilemap.Constant.maxTextures;
+            for (var i = 0; i < maxTextures; i++) {
+                var rt = PIXI.RenderTexture.create(pixi_tilemap.Constant.bufferSize, pixi_tilemap.Constant.bufferSize);
+                rt.baseTexture.premultipliedAlpha = true;
+                rt.baseTexture.scaleMode = TileRenderer.SCALE_MODE;
+                rt.baseTexture.wrapMode = PIXI.WRAP_MODES.CLAMP;
+                this.renderer.textureManager.updateTexture(rt);
+                this.glTextures.push(rt);
+                var bounds = this.boundSprites;
+                for (var j = 0; j < pixi_tilemap.Constant.boundCountPerBuffer; j++) {
+                    var spr = new PIXI.Sprite();
+                    spr.position.x = pixi_tilemap.Constant.boundSize * (j & 1);
+                    spr.position.y = pixi_tilemap.Constant.boundSize * (j >> 1);
+                    bounds.push(spr);
+                }
+            }
+        };
+        TileRenderer.prototype.bindTextures = function (renderer, shader, textures) {
+            var len = textures.length;
+            var maxTextures = pixi_tilemap.Constant.maxTextures;
+            if (len > pixi_tilemap.Constant.boundCountPerBuffer * maxTextures) {
+                return;
+            }
+            var doClear = TileRenderer.DO_CLEAR;
+            if (doClear && !this._clearBuffer) {
+                this._clearBuffer = new Uint8Array(pixi_tilemap.Constant.boundSize * pixi_tilemap.Constant.boundSize * 4);
+            }
+            var glts = this.glTextures;
+            var bounds = this.boundSprites;
+            var i;
+            for (i = 0; i < len; i++) {
+                var texture = textures[i];
+                if (!texture || !texture.valid)
+                    continue;
+                var bs = bounds[i];
+                if (!bs.texture ||
+                    bs.texture.baseTexture !== texture.baseTexture) {
+                    bs.texture = texture;
+                    var glt = glts[i >> 2];
+                    renderer.bindTexture(glt, 0, true);
+                    if (doClear) {
+                        _hackSubImage(glt.baseTexture._glTextures[renderer.CONTEXT_UID], bs, this._clearBuffer, pixi_tilemap.Constant.boundSize, pixi_tilemap.Constant.boundSize);
+                    }
+                    else {
+                        _hackSubImage(glt.baseTexture._glTextures[renderer.CONTEXT_UID], bs);
+                    }
+                }
+            }
+            this.texLoc.length = 0;
+            var gltsUsed = (i + 3) >> 2;
+            for (i = 0; i < gltsUsed; i++) {
+                this.texLoc.push(renderer.bindTexture(glts[i], i, true));
+            }
+            shader.uniforms.uSamplers = this.texLoc;
+        };
+        TileRenderer.prototype.checkLeaks = function () {
+            var now = Date.now();
+            var old = now - 10000;
+            if (this.lastTimeCheck < old ||
+                this.lastTimeCheck > now) {
+                this.lastTimeCheck = now;
+                var vbs = this.vbs;
+                for (var key in vbs) {
+                    if (vbs[key].lastTimeAccess < old) {
+                        this.removeVb(key);
+                    }
+                }
+            }
+        };
+        TileRenderer.prototype.start = function () {
+            this.renderer.state.setBlendMode(PIXI.BLEND_MODES.NORMAL);
+        };
+        TileRenderer.prototype.getVb = function (id) {
+            this.checkLeaks();
+            var vb = this.vbs[id];
+            if (vb) {
+                vb.lastAccessTime = Date.now();
+                return vb;
+            }
+            return null;
+        };
+        TileRenderer.prototype.createVb = function () {
+            var id = ++TileRenderer.vbAutoincrement;
+            var shader = this.getShader();
+            var gl = this.renderer.gl;
+            var vb = PIXI.glCore.GLBuffer.createVertexBuffer(gl, null, gl.STREAM_DRAW);
+            var stuff = {
+                id: id,
+                vb: vb,
+                vao: shader.createVao(this.renderer, vb),
+                lastTimeAccess: Date.now(),
+                shader: shader
+            };
+            this.vbs[id] = stuff;
+            return stuff;
+        };
+        TileRenderer.prototype.removeVb = function (id) {
+            if (this.vbs[id]) {
+                this.vbs[id].vb.destroy();
+                this.vbs[id].vao.destroy();
+                delete this.vbs[id];
+            }
+        };
+        TileRenderer.prototype.checkIndexBuffer = function (size) {
+            var totalIndices = size * 6;
+            var indices = this.indices;
+            if (totalIndices <= indices.length) {
+                return;
+            }
+            var len = indices.length || totalIndices;
+            while (len < totalIndices) {
+                len <<= 1;
+            }
+            indices = new Uint16Array(len);
+            this.indices = indices;
+            for (var i = 0, j = 0; i + 5 < indices.length; i += 6, j += 4) {
+                indices[i + 0] = j + 0;
+                indices[i + 1] = j + 1;
+                indices[i + 2] = j + 2;
+                indices[i + 3] = j + 0;
+                indices[i + 4] = j + 2;
+                indices[i + 5] = j + 3;
+            }
+            if (this.indexBuffer) {
+                this.indexBuffer.upload(indices);
+            }
+            else {
+                var gl = this.renderer.gl;
+                this.indexBuffer = glCore.GLBuffer.createIndexBuffer(gl, this.indices, gl.STATIC_DRAW);
+            }
+        };
+        TileRenderer.prototype.getShader = function () {
+            return this.rectShader;
+        };
+        TileRenderer.prototype.destroy = function () {
+            _super.prototype.destroy.call(this);
+            this.rectShader.destroy();
+            this.rectShader = null;
+        };
+        TileRenderer.vbAutoincrement = 0;
+        TileRenderer.SCALE_MODE = PIXI.SCALE_MODES.LINEAR;
+        TileRenderer.DO_CLEAR = false;
+        return TileRenderer;
+    }(PIXI.ObjectRenderer));
+    pixi_tilemap.TileRenderer = TileRenderer;
+    PIXI.WebGLRenderer.registerPlugin('tilemap', TileRenderer);
+})(pixi_tilemap || (pixi_tilemap = {}));
+var pixi_tilemap;
+(function (pixi_tilemap) {
+    var SimpleTileRenderer = (function (_super) {
+        __extends(SimpleTileRenderer, _super);
+        function SimpleTileRenderer(renderer) {
+            var _this = _super.call(this, renderer) || this;
+            _this.samplerSize = [];
+            return _this;
+        }
+        SimpleTileRenderer.prototype.onContextChange = function () {
+            var gl = this.renderer.gl;
+            this.rectShader = new pixi_tilemap.RectTileShader(gl, 1);
+            this.checkIndexBuffer(2000);
+            this.rectShader.indexBuffer = this.indexBuffer;
+            this.vbs = {};
+        };
+        SimpleTileRenderer.prototype.bindTextures = function (renderer, shader, textures) {
+            var len = textures.length;
+            var i;
+            for (i = 0; i < len; i++) {
+                var texture = textures[i];
+                if (!texture || !texture.valid) {
+                    continue;
+                }
+                this.texLoc[0] = renderer.bindTexture(texture, 0, true);
+                shader.uniforms.uSamplers = this.texLoc;
+                this.samplerSize[0] = 1.0 / texture.baseTexture.width;
+                this.samplerSize[1] = 1.0 / texture.baseTexture.height;
+                shader.uniforms.uSamplerSize = this.samplerSize;
+                break;
+            }
+        };
+        SimpleTileRenderer.prototype.destroy = function () {
+            _super.prototype.destroy.call(this);
+        };
+        return SimpleTileRenderer;
+    }(pixi_tilemap.TileRenderer));
+    pixi_tilemap.SimpleTileRenderer = SimpleTileRenderer;
+    PIXI.WebGLRenderer.registerPlugin('simpleTilemap', SimpleTileRenderer);
+})(pixi_tilemap || (pixi_tilemap = {}));
+var pixi_tilemap;
+(function (pixi_tilemap) {
+    var ZLayer = (function (_super) {
+        __extends(ZLayer, _super);
+        function ZLayer(tilemap, zIndex) {
+            var _this = _super.call(this) || this;
+            _this._lastAnimationFrame = -1;
+            _this.tilemap = tilemap;
+            _this.z = zIndex;
+            return _this;
+        }
+        ZLayer.prototype.clear = function () {
+            var layers = this.children;
+            for (var i = 0; i < layers.length; i++)
+                layers[i].clear();
+            this._previousLayers = 0;
+        };
+        ZLayer.prototype.cacheIfDirty = function () {
+            var tilemap = this.tilemap;
+            var layers = this.children;
+            var modified = this._previousLayers !== layers.length;
+            this._previousLayers = layers.length;
+            var buf = this.canvasBuffer;
+            var tempRender = this._tempRender;
+            if (!buf) {
+                buf = this.canvasBuffer = document.createElement('canvas');
+                tempRender = this._tempRender = new PIXI.CanvasRenderer(100, 100, { view: buf });
+                tempRender.context = tempRender.rootContext;
+                tempRender.plugins.tilemap.dontUseTransform = true;
+            }
+            if (buf.width !== tilemap._layerWidth ||
+                buf.height !== tilemap._layerHeight) {
+                buf.width = tilemap._layerWidth;
+                buf.height = tilemap._layerHeight;
+                modified = true;
+            }
+            var i;
+            if (!modified) {
+                for (i = 0; i < layers.length; i++) {
+                    if (layers[i].isModified(this._lastAnimationFrame !== tilemap.animationFrame)) {
+                        modified = true;
+                        break;
+                    }
+                }
+            }
+            this._lastAnimationFrame = tilemap.animationFrame;
+            if (modified) {
+                if (tilemap._hackRenderer) {
+                    tilemap._hackRenderer(tempRender);
+                }
+                tempRender.context.clearRect(0, 0, buf.width, buf.height);
+                for (i = 0; i < layers.length; i++) {
+                    layers[i].clearModify();
+                    layers[i].renderCanvas(tempRender);
+                }
+            }
+            this.layerTransform = this.worldTransform;
+            for (i = 0; i < layers.length; i++) {
+                this.layerTransform = layers[i].worldTransform;
+                break;
+            }
+        };
+        ZLayer.prototype.renderCanvas = function (renderer) {
+            this.cacheIfDirty();
+            var wt = this.layerTransform;
+            renderer.context.setTransform(wt.a, wt.b, wt.c, wt.d, wt.tx * renderer.resolution, wt.ty * renderer.resolution);
+            var tilemap = this.tilemap;
+            renderer.context.drawImage(this.canvasBuffer, 0, 0);
+        };
+        return ZLayer;
+    }(PIXI.Container));
+    pixi_tilemap.ZLayer = ZLayer;
+})(pixi_tilemap || (pixi_tilemap = {}));
+var pixi_tilemap;
+(function (pixi_tilemap) {
+    PIXI.tilemap = pixi_tilemap;
+})(pixi_tilemap || (pixi_tilemap = {}));
+var pixi_tilemap;
+(function (pixi_tilemap) {
+    var shaderGenerator;
+    (function (shaderGenerator) {
+        function fillSamplers(shader, maxTextures) {
+            var sampleValues = [];
+            for (var i = 0; i < maxTextures; i++) {
+                sampleValues[i] = i;
+            }
+            shader.bind();
+            shader.uniforms.uSamplers = sampleValues;
+            var samplerSize = [];
+            for (i = 0; i < maxTextures; i++) {
+                samplerSize.push(1.0 / pixi_tilemap.Constant.bufferSize);
+                samplerSize.push(1.0 / pixi_tilemap.Constant.bufferSize);
+            }
+            shader.uniforms.uSamplerSize = samplerSize;
+        }
+        shaderGenerator.fillSamplers = fillSamplers;
+        function generateFragmentSrc(maxTextures, fragmentSrc) {
+            return fragmentSrc.replace(/%count%/gi, maxTextures + "")
+                .replace(/%forloop%/gi, this.generateSampleSrc(maxTextures));
+        }
+        shaderGenerator.generateFragmentSrc = generateFragmentSrc;
+        function generateSampleSrc(maxTextures) {
+            var src = '';
+            src += '\n';
+            src += '\n';
+            src += 'if(vTextureId <= -1.0) {';
+            src += '\n\tcolor = shadowColor;';
+            src += '\n}';
+            for (var i = 0; i < maxTextures; i++) {
+                src += '\nelse ';
+                if (i < maxTextures - 1) {
+                    src += 'if(textureId == ' + i + '.0)';
+                }
+                src += '\n{';
+                src += '\n\tcolor = texture2D(uSamplers[' + i + '], textureCoord * uSamplerSize[' + i + ']);';
+                src += '\n}';
+            }
+            src += '\n';
+            src += '\n';
+            return src;
+        }
+        shaderGenerator.generateSampleSrc = generateSampleSrc;
+    })(shaderGenerator = pixi_tilemap.shaderGenerator || (pixi_tilemap.shaderGenerator = {}));
+})(pixi_tilemap || (pixi_tilemap = {}));
+//# sourceMappingURL=pixi-tilemap.js.map
+
+/***/ }),
+
 /***/ "./node_modules/pixi.js/lib/accessibility/AccessibilityManager.js":
 /*!************************************************************************!*\
   !*** ./node_modules/pixi.js/lib/accessibility/AccessibilityManager.js ***!
@@ -10663,7 +11594,7 @@ module.exports = setPrecision;
 
 exports.__esModule = true;
 
-var _core = __webpack_require__(/*! ../core */ "./node_modules/pixi.js/lib/core/index.js-exposed");
+var _core = __webpack_require__(/*! ../core */ "./node_modules/pixi.js/lib/core/index.js");
 
 var core = _interopRequireWildcard(_core);
 
@@ -10671,7 +11602,7 @@ var _ismobilejs = __webpack_require__(/*! ismobilejs */ "./node_modules/ismobile
 
 var _ismobilejs2 = _interopRequireDefault(_ismobilejs);
 
-var _accessibleTarget = __webpack_require__(/*! ./accessibleTarget */ "./node_modules/pixi.js/lib/accessibility/accessibleTarget.js-exposed");
+var _accessibleTarget = __webpack_require__(/*! ./accessibleTarget */ "./node_modules/pixi.js/lib/accessibility/accessibleTarget.js");
 
 var _accessibleTarget2 = _interopRequireDefault(_accessibleTarget);
 
@@ -11190,19 +12121,6 @@ core.CanvasRenderer.registerPlugin('accessibility', AccessibilityManager);
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/accessibility/AccessibilityManager.js-exposed":
-/*!********************************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/accessibility/AccessibilityManager.js-exposed ***!
-  \********************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./AccessibilityManager.js */ "./node_modules/pixi.js/lib/accessibility/AccessibilityManager.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/accessibility/accessibleTarget.js":
 /*!********************************************************************!*\
   !*** ./node_modules/pixi.js/lib/accessibility/accessibleTarget.js ***!
@@ -11271,19 +12189,6 @@ exports.default = {
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/accessibility/accessibleTarget.js-exposed":
-/*!****************************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/accessibility/accessibleTarget.js-exposed ***!
-  \****************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./accessibleTarget.js */ "./node_modules/pixi.js/lib/accessibility/accessibleTarget.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/accessibility/index.js":
 /*!*********************************************************!*\
   !*** ./node_modules/pixi.js/lib/accessibility/index.js ***!
@@ -11296,7 +12201,7 @@ module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./accessibleTa
 
 exports.__esModule = true;
 
-var _accessibleTarget = __webpack_require__(/*! ./accessibleTarget */ "./node_modules/pixi.js/lib/accessibility/accessibleTarget.js-exposed");
+var _accessibleTarget = __webpack_require__(/*! ./accessibleTarget */ "./node_modules/pixi.js/lib/accessibility/accessibleTarget.js");
 
 Object.defineProperty(exports, 'accessibleTarget', {
   enumerable: true,
@@ -11305,7 +12210,7 @@ Object.defineProperty(exports, 'accessibleTarget', {
   }
 });
 
-var _AccessibilityManager = __webpack_require__(/*! ./AccessibilityManager */ "./node_modules/pixi.js/lib/accessibility/AccessibilityManager.js-exposed");
+var _AccessibilityManager = __webpack_require__(/*! ./AccessibilityManager */ "./node_modules/pixi.js/lib/accessibility/AccessibilityManager.js");
 
 Object.defineProperty(exports, 'AccessibilityManager', {
   enumerable: true,
@@ -11316,19 +12221,6 @@ Object.defineProperty(exports, 'AccessibilityManager', {
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 //# sourceMappingURL=index.js.map
-
-/***/ }),
-
-/***/ "./node_modules/pixi.js/lib/accessibility/index.js-exposed":
-/*!*****************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/accessibility/index.js-exposed ***!
-  \*****************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./index.js */ "./node_modules/pixi.js/lib/accessibility/index.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
 
 /***/ }),
 
@@ -11346,19 +12238,19 @@ exports.__esModule = true;
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _autoDetectRenderer = __webpack_require__(/*! ./autoDetectRenderer */ "./node_modules/pixi.js/lib/core/autoDetectRenderer.js-exposed");
+var _autoDetectRenderer = __webpack_require__(/*! ./autoDetectRenderer */ "./node_modules/pixi.js/lib/core/autoDetectRenderer.js");
 
-var _Container = __webpack_require__(/*! ./display/Container */ "./node_modules/pixi.js/lib/core/display/Container.js-exposed");
+var _Container = __webpack_require__(/*! ./display/Container */ "./node_modules/pixi.js/lib/core/display/Container.js");
 
 var _Container2 = _interopRequireDefault(_Container);
 
-var _ticker = __webpack_require__(/*! ./ticker */ "./node_modules/pixi.js/lib/core/ticker/index.js-exposed");
+var _ticker = __webpack_require__(/*! ./ticker */ "./node_modules/pixi.js/lib/core/ticker/index.js");
 
-var _settings = __webpack_require__(/*! ./settings */ "./node_modules/pixi.js/lib/core/settings.js-exposed");
+var _settings = __webpack_require__(/*! ./settings */ "./node_modules/pixi.js/lib/core/settings.js");
 
 var _settings2 = _interopRequireDefault(_settings);
 
-var _const = __webpack_require__(/*! ./const */ "./node_modules/pixi.js/lib/core/const.js-exposed");
+var _const = __webpack_require__(/*! ./const */ "./node_modules/pixi.js/lib/core/const.js");
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -11574,19 +12466,6 @@ exports.default = Application;
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/core/Application.js-exposed":
-/*!**************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/Application.js-exposed ***!
-  \**************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./Application.js */ "./node_modules/pixi.js/lib/core/Application.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/core/Shader.js":
 /*!*************************************************!*\
   !*** ./node_modules/pixi.js/lib/core/Shader.js ***!
@@ -11601,7 +12480,7 @@ exports.__esModule = true;
 
 var _pixiGlCore = __webpack_require__(/*! pixi-gl-core */ "./node_modules/pixi-gl-core/src/index.js");
 
-var _settings = __webpack_require__(/*! ./settings */ "./node_modules/pixi.js/lib/core/settings.js-exposed");
+var _settings = __webpack_require__(/*! ./settings */ "./node_modules/pixi.js/lib/core/settings.js");
 
 var _settings2 = _interopRequireDefault(_settings);
 
@@ -11664,19 +12543,6 @@ exports.default = Shader;
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/core/Shader.js-exposed":
-/*!*********************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/Shader.js-exposed ***!
-  \*********************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./Shader.js */ "./node_modules/pixi.js/lib/core/Shader.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/core/autoDetectRenderer.js":
 /*!*************************************************************!*\
   !*** ./node_modules/pixi.js/lib/core/autoDetectRenderer.js ***!
@@ -11690,15 +12556,15 @@ module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./Shader.js */
 exports.__esModule = true;
 exports.autoDetectRenderer = autoDetectRenderer;
 
-var _utils = __webpack_require__(/*! ./utils */ "./node_modules/pixi.js/lib/core/utils/index.js-exposed");
+var _utils = __webpack_require__(/*! ./utils */ "./node_modules/pixi.js/lib/core/utils/index.js");
 
 var utils = _interopRequireWildcard(_utils);
 
-var _CanvasRenderer = __webpack_require__(/*! ./renderers/canvas/CanvasRenderer */ "./node_modules/pixi.js/lib/core/renderers/canvas/CanvasRenderer.js-exposed");
+var _CanvasRenderer = __webpack_require__(/*! ./renderers/canvas/CanvasRenderer */ "./node_modules/pixi.js/lib/core/renderers/canvas/CanvasRenderer.js");
 
 var _CanvasRenderer2 = _interopRequireDefault(_CanvasRenderer);
 
-var _WebGLRenderer = __webpack_require__(/*! ./renderers/webgl/WebGLRenderer */ "./node_modules/pixi.js/lib/core/renderers/webgl/WebGLRenderer.js-exposed");
+var _WebGLRenderer = __webpack_require__(/*! ./renderers/webgl/WebGLRenderer */ "./node_modules/pixi.js/lib/core/renderers/webgl/WebGLRenderer.js");
 
 var _WebGLRenderer2 = _interopRequireDefault(_WebGLRenderer);
 
@@ -11753,19 +12619,6 @@ function autoDetectRenderer(options, arg1, arg2, arg3) {
     return new _CanvasRenderer2.default(options, arg1, arg2);
 }
 //# sourceMappingURL=autoDetectRenderer.js.map
-
-/***/ }),
-
-/***/ "./node_modules/pixi.js/lib/core/autoDetectRenderer.js-exposed":
-/*!*********************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/autoDetectRenderer.js-exposed ***!
-  \*********************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./autoDetectRenderer.js */ "./node_modules/pixi.js/lib/core/autoDetectRenderer.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
 
 /***/ }),
 
@@ -12122,19 +12975,6 @@ var UPDATE_PRIORITY = exports.UPDATE_PRIORITY = {
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/core/const.js-exposed":
-/*!********************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/const.js-exposed ***!
-  \********************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./const.js */ "./node_modules/pixi.js/lib/core/const.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/core/display/Bounds.js":
 /*!*********************************************************!*\
   !*** ./node_modules/pixi.js/lib/core/display/Bounds.js ***!
@@ -12147,7 +12987,7 @@ module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./const.js */ 
 
 exports.__esModule = true;
 
-var _math = __webpack_require__(/*! ../math */ "./node_modules/pixi.js/lib/core/math/index.js-exposed");
+var _math = __webpack_require__(/*! ../math */ "./node_modules/pixi.js/lib/core/math/index.js");
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
@@ -12488,19 +13328,6 @@ exports.default = Bounds;
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/core/display/Bounds.js-exposed":
-/*!*****************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/display/Bounds.js-exposed ***!
-  \*****************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./Bounds.js */ "./node_modules/pixi.js/lib/core/display/Bounds.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/core/display/Container.js":
 /*!************************************************************!*\
   !*** ./node_modules/pixi.js/lib/core/display/Container.js ***!
@@ -12515,9 +13342,9 @@ exports.__esModule = true;
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _utils = __webpack_require__(/*! ../utils */ "./node_modules/pixi.js/lib/core/utils/index.js-exposed");
+var _utils = __webpack_require__(/*! ../utils */ "./node_modules/pixi.js/lib/core/utils/index.js");
 
-var _DisplayObject2 = __webpack_require__(/*! ./DisplayObject */ "./node_modules/pixi.js/lib/core/display/DisplayObject.js-exposed");
+var _DisplayObject2 = __webpack_require__(/*! ./DisplayObject */ "./node_modules/pixi.js/lib/core/display/DisplayObject.js");
 
 var _DisplayObject3 = _interopRequireDefault(_DisplayObject2);
 
@@ -13129,19 +13956,6 @@ Container.prototype.containerUpdateTransform = Container.prototype.updateTransfo
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/core/display/Container.js-exposed":
-/*!********************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/display/Container.js-exposed ***!
-  \********************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./Container.js */ "./node_modules/pixi.js/lib/core/display/Container.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/core/display/DisplayObject.js":
 /*!****************************************************************!*\
   !*** ./node_modules/pixi.js/lib/core/display/DisplayObject.js ***!
@@ -13156,29 +13970,29 @@ exports.__esModule = true;
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _eventemitter = __webpack_require__(/*! eventemitter3 */ "./node_modules/pixi.js/node_modules/eventemitter3/index.js-exposed");
+var _eventemitter = __webpack_require__(/*! eventemitter3 */ "./node_modules/pixi.js/node_modules/eventemitter3/index.js");
 
 var _eventemitter2 = _interopRequireDefault(_eventemitter);
 
-var _const = __webpack_require__(/*! ../const */ "./node_modules/pixi.js/lib/core/const.js-exposed");
+var _const = __webpack_require__(/*! ../const */ "./node_modules/pixi.js/lib/core/const.js");
 
-var _settings = __webpack_require__(/*! ../settings */ "./node_modules/pixi.js/lib/core/settings.js-exposed");
+var _settings = __webpack_require__(/*! ../settings */ "./node_modules/pixi.js/lib/core/settings.js");
 
 var _settings2 = _interopRequireDefault(_settings);
 
-var _TransformStatic = __webpack_require__(/*! ./TransformStatic */ "./node_modules/pixi.js/lib/core/display/TransformStatic.js-exposed");
+var _TransformStatic = __webpack_require__(/*! ./TransformStatic */ "./node_modules/pixi.js/lib/core/display/TransformStatic.js");
 
 var _TransformStatic2 = _interopRequireDefault(_TransformStatic);
 
-var _Transform = __webpack_require__(/*! ./Transform */ "./node_modules/pixi.js/lib/core/display/Transform.js-exposed");
+var _Transform = __webpack_require__(/*! ./Transform */ "./node_modules/pixi.js/lib/core/display/Transform.js");
 
 var _Transform2 = _interopRequireDefault(_Transform);
 
-var _Bounds = __webpack_require__(/*! ./Bounds */ "./node_modules/pixi.js/lib/core/display/Bounds.js-exposed");
+var _Bounds = __webpack_require__(/*! ./Bounds */ "./node_modules/pixi.js/lib/core/display/Bounds.js");
 
 var _Bounds2 = _interopRequireDefault(_Bounds);
 
-var _math = __webpack_require__(/*! ../math */ "./node_modules/pixi.js/lib/core/math/index.js-exposed");
+var _math = __webpack_require__(/*! ../math */ "./node_modules/pixi.js/lib/core/math/index.js");
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -13846,19 +14660,6 @@ DisplayObject.prototype.displayObjectUpdateTransform = DisplayObject.prototype.u
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/core/display/DisplayObject.js-exposed":
-/*!************************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/display/DisplayObject.js-exposed ***!
-  \************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./DisplayObject.js */ "./node_modules/pixi.js/lib/core/display/DisplayObject.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/core/display/Transform.js":
 /*!************************************************************!*\
   !*** ./node_modules/pixi.js/lib/core/display/Transform.js ***!
@@ -13873,9 +14674,9 @@ exports.__esModule = true;
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _math = __webpack_require__(/*! ../math */ "./node_modules/pixi.js/lib/core/math/index.js-exposed");
+var _math = __webpack_require__(/*! ../math */ "./node_modules/pixi.js/lib/core/math/index.js");
 
-var _TransformBase2 = __webpack_require__(/*! ./TransformBase */ "./node_modules/pixi.js/lib/core/display/TransformBase.js-exposed");
+var _TransformBase2 = __webpack_require__(/*! ./TransformBase */ "./node_modules/pixi.js/lib/core/display/TransformBase.js");
 
 var _TransformBase3 = _interopRequireDefault(_TransformBase2);
 
@@ -14050,19 +14851,6 @@ exports.default = Transform;
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/core/display/Transform.js-exposed":
-/*!********************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/display/Transform.js-exposed ***!
-  \********************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./Transform.js */ "./node_modules/pixi.js/lib/core/display/Transform.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/core/display/TransformBase.js":
 /*!****************************************************************!*\
   !*** ./node_modules/pixi.js/lib/core/display/TransformBase.js ***!
@@ -14075,7 +14863,7 @@ module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./Transform.js
 
 exports.__esModule = true;
 
-var _math = __webpack_require__(/*! ../math */ "./node_modules/pixi.js/lib/core/math/index.js-exposed");
+var _math = __webpack_require__(/*! ../math */ "./node_modules/pixi.js/lib/core/math/index.js");
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
@@ -14160,19 +14948,6 @@ TransformBase.IDENTITY = new TransformBase();
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/core/display/TransformBase.js-exposed":
-/*!************************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/display/TransformBase.js-exposed ***!
-  \************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./TransformBase.js */ "./node_modules/pixi.js/lib/core/display/TransformBase.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/core/display/TransformStatic.js":
 /*!******************************************************************!*\
   !*** ./node_modules/pixi.js/lib/core/display/TransformStatic.js ***!
@@ -14187,9 +14962,9 @@ exports.__esModule = true;
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _math = __webpack_require__(/*! ../math */ "./node_modules/pixi.js/lib/core/math/index.js-exposed");
+var _math = __webpack_require__(/*! ../math */ "./node_modules/pixi.js/lib/core/math/index.js");
 
-var _TransformBase2 = __webpack_require__(/*! ./TransformBase */ "./node_modules/pixi.js/lib/core/display/TransformBase.js-exposed");
+var _TransformBase2 = __webpack_require__(/*! ./TransformBase */ "./node_modules/pixi.js/lib/core/display/TransformBase.js");
 
 var _TransformBase3 = _interopRequireDefault(_TransformBase2);
 
@@ -14393,19 +15168,6 @@ exports.default = TransformStatic;
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/core/display/TransformStatic.js-exposed":
-/*!**************************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/display/TransformStatic.js-exposed ***!
-  \**************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./TransformStatic.js */ "./node_modules/pixi.js/lib/core/display/TransformStatic.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/core/graphics/Graphics.js":
 /*!************************************************************!*\
   !*** ./node_modules/pixi.js/lib/core/graphics/Graphics.js ***!
@@ -14418,41 +15180,41 @@ module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./TransformSta
 
 exports.__esModule = true;
 
-var _Container2 = __webpack_require__(/*! ../display/Container */ "./node_modules/pixi.js/lib/core/display/Container.js-exposed");
+var _Container2 = __webpack_require__(/*! ../display/Container */ "./node_modules/pixi.js/lib/core/display/Container.js");
 
 var _Container3 = _interopRequireDefault(_Container2);
 
-var _RenderTexture = __webpack_require__(/*! ../textures/RenderTexture */ "./node_modules/pixi.js/lib/core/textures/RenderTexture.js-exposed");
+var _RenderTexture = __webpack_require__(/*! ../textures/RenderTexture */ "./node_modules/pixi.js/lib/core/textures/RenderTexture.js");
 
 var _RenderTexture2 = _interopRequireDefault(_RenderTexture);
 
-var _Texture = __webpack_require__(/*! ../textures/Texture */ "./node_modules/pixi.js/lib/core/textures/Texture.js-exposed");
+var _Texture = __webpack_require__(/*! ../textures/Texture */ "./node_modules/pixi.js/lib/core/textures/Texture.js");
 
 var _Texture2 = _interopRequireDefault(_Texture);
 
-var _GraphicsData = __webpack_require__(/*! ./GraphicsData */ "./node_modules/pixi.js/lib/core/graphics/GraphicsData.js-exposed");
+var _GraphicsData = __webpack_require__(/*! ./GraphicsData */ "./node_modules/pixi.js/lib/core/graphics/GraphicsData.js");
 
 var _GraphicsData2 = _interopRequireDefault(_GraphicsData);
 
-var _Sprite = __webpack_require__(/*! ../sprites/Sprite */ "./node_modules/pixi.js/lib/core/sprites/Sprite.js-exposed");
+var _Sprite = __webpack_require__(/*! ../sprites/Sprite */ "./node_modules/pixi.js/lib/core/sprites/Sprite.js");
 
 var _Sprite2 = _interopRequireDefault(_Sprite);
 
-var _math = __webpack_require__(/*! ../math */ "./node_modules/pixi.js/lib/core/math/index.js-exposed");
+var _math = __webpack_require__(/*! ../math */ "./node_modules/pixi.js/lib/core/math/index.js");
 
-var _utils = __webpack_require__(/*! ../utils */ "./node_modules/pixi.js/lib/core/utils/index.js-exposed");
+var _utils = __webpack_require__(/*! ../utils */ "./node_modules/pixi.js/lib/core/utils/index.js");
 
-var _const = __webpack_require__(/*! ../const */ "./node_modules/pixi.js/lib/core/const.js-exposed");
+var _const = __webpack_require__(/*! ../const */ "./node_modules/pixi.js/lib/core/const.js");
 
-var _Bounds = __webpack_require__(/*! ../display/Bounds */ "./node_modules/pixi.js/lib/core/display/Bounds.js-exposed");
+var _Bounds = __webpack_require__(/*! ../display/Bounds */ "./node_modules/pixi.js/lib/core/display/Bounds.js");
 
 var _Bounds2 = _interopRequireDefault(_Bounds);
 
-var _bezierCurveTo2 = __webpack_require__(/*! ./utils/bezierCurveTo */ "./node_modules/pixi.js/lib/core/graphics/utils/bezierCurveTo.js-exposed");
+var _bezierCurveTo2 = __webpack_require__(/*! ./utils/bezierCurveTo */ "./node_modules/pixi.js/lib/core/graphics/utils/bezierCurveTo.js");
 
 var _bezierCurveTo3 = _interopRequireDefault(_bezierCurveTo2);
 
-var _CanvasRenderer = __webpack_require__(/*! ../renderers/canvas/CanvasRenderer */ "./node_modules/pixi.js/lib/core/renderers/canvas/CanvasRenderer.js-exposed");
+var _CanvasRenderer = __webpack_require__(/*! ../renderers/canvas/CanvasRenderer */ "./node_modules/pixi.js/lib/core/renderers/canvas/CanvasRenderer.js");
 
 var _CanvasRenderer2 = _interopRequireDefault(_CanvasRenderer);
 
@@ -15793,19 +16555,6 @@ Graphics.CURVES = {
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/core/graphics/Graphics.js-exposed":
-/*!********************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/graphics/Graphics.js-exposed ***!
-  \********************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./Graphics.js */ "./node_modules/pixi.js/lib/core/graphics/Graphics.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/core/graphics/GraphicsData.js":
 /*!****************************************************************!*\
   !*** ./node_modules/pixi.js/lib/core/graphics/GraphicsData.js ***!
@@ -15961,19 +16710,6 @@ exports.default = GraphicsData;
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/core/graphics/GraphicsData.js-exposed":
-/*!************************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/graphics/GraphicsData.js-exposed ***!
-  \************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./GraphicsData.js */ "./node_modules/pixi.js/lib/core/graphics/GraphicsData.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/core/graphics/canvas/CanvasGraphicsRenderer.js":
 /*!*********************************************************************************!*\
   !*** ./node_modules/pixi.js/lib/core/graphics/canvas/CanvasGraphicsRenderer.js ***!
@@ -15986,11 +16722,11 @@ module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./GraphicsData
 
 exports.__esModule = true;
 
-var _CanvasRenderer = __webpack_require__(/*! ../../renderers/canvas/CanvasRenderer */ "./node_modules/pixi.js/lib/core/renderers/canvas/CanvasRenderer.js-exposed");
+var _CanvasRenderer = __webpack_require__(/*! ../../renderers/canvas/CanvasRenderer */ "./node_modules/pixi.js/lib/core/renderers/canvas/CanvasRenderer.js");
 
 var _CanvasRenderer2 = _interopRequireDefault(_CanvasRenderer);
 
-var _const = __webpack_require__(/*! ../../const */ "./node_modules/pixi.js/lib/core/const.js-exposed");
+var _const = __webpack_require__(/*! ../../const */ "./node_modules/pixi.js/lib/core/const.js");
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -16249,19 +16985,6 @@ _CanvasRenderer2.default.registerPlugin('graphics', CanvasGraphicsRenderer);
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/core/graphics/canvas/CanvasGraphicsRenderer.js-exposed":
-/*!*****************************************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/graphics/canvas/CanvasGraphicsRenderer.js-exposed ***!
-  \*****************************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./CanvasGraphicsRenderer.js */ "./node_modules/pixi.js/lib/core/graphics/canvas/CanvasGraphicsRenderer.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/core/graphics/utils/bezierCurveTo.js":
 /*!***********************************************************************!*\
   !*** ./node_modules/pixi.js/lib/core/graphics/utils/bezierCurveTo.js ***!
@@ -16322,19 +17045,6 @@ function bezierCurveTo(fromX, fromY, cpX, cpY, cpX2, cpY2, toX, toY, n) {
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/core/graphics/utils/bezierCurveTo.js-exposed":
-/*!*******************************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/graphics/utils/bezierCurveTo.js-exposed ***!
-  \*******************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./bezierCurveTo.js */ "./node_modules/pixi.js/lib/core/graphics/utils/bezierCurveTo.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/core/graphics/webgl/GraphicsRenderer.js":
 /*!**************************************************************************!*\
   !*** ./node_modules/pixi.js/lib/core/graphics/webgl/GraphicsRenderer.js ***!
@@ -16347,39 +17057,39 @@ module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./bezierCurveT
 
 exports.__esModule = true;
 
-var _utils = __webpack_require__(/*! ../../utils */ "./node_modules/pixi.js/lib/core/utils/index.js-exposed");
+var _utils = __webpack_require__(/*! ../../utils */ "./node_modules/pixi.js/lib/core/utils/index.js");
 
-var _const = __webpack_require__(/*! ../../const */ "./node_modules/pixi.js/lib/core/const.js-exposed");
+var _const = __webpack_require__(/*! ../../const */ "./node_modules/pixi.js/lib/core/const.js");
 
-var _ObjectRenderer2 = __webpack_require__(/*! ../../renderers/webgl/utils/ObjectRenderer */ "./node_modules/pixi.js/lib/core/renderers/webgl/utils/ObjectRenderer.js-exposed");
+var _ObjectRenderer2 = __webpack_require__(/*! ../../renderers/webgl/utils/ObjectRenderer */ "./node_modules/pixi.js/lib/core/renderers/webgl/utils/ObjectRenderer.js");
 
 var _ObjectRenderer3 = _interopRequireDefault(_ObjectRenderer2);
 
-var _WebGLRenderer = __webpack_require__(/*! ../../renderers/webgl/WebGLRenderer */ "./node_modules/pixi.js/lib/core/renderers/webgl/WebGLRenderer.js-exposed");
+var _WebGLRenderer = __webpack_require__(/*! ../../renderers/webgl/WebGLRenderer */ "./node_modules/pixi.js/lib/core/renderers/webgl/WebGLRenderer.js");
 
 var _WebGLRenderer2 = _interopRequireDefault(_WebGLRenderer);
 
-var _WebGLGraphicsData = __webpack_require__(/*! ./WebGLGraphicsData */ "./node_modules/pixi.js/lib/core/graphics/webgl/WebGLGraphicsData.js-exposed");
+var _WebGLGraphicsData = __webpack_require__(/*! ./WebGLGraphicsData */ "./node_modules/pixi.js/lib/core/graphics/webgl/WebGLGraphicsData.js");
 
 var _WebGLGraphicsData2 = _interopRequireDefault(_WebGLGraphicsData);
 
-var _PrimitiveShader = __webpack_require__(/*! ./shaders/PrimitiveShader */ "./node_modules/pixi.js/lib/core/graphics/webgl/shaders/PrimitiveShader.js-exposed");
+var _PrimitiveShader = __webpack_require__(/*! ./shaders/PrimitiveShader */ "./node_modules/pixi.js/lib/core/graphics/webgl/shaders/PrimitiveShader.js");
 
 var _PrimitiveShader2 = _interopRequireDefault(_PrimitiveShader);
 
-var _buildPoly = __webpack_require__(/*! ./utils/buildPoly */ "./node_modules/pixi.js/lib/core/graphics/webgl/utils/buildPoly.js-exposed");
+var _buildPoly = __webpack_require__(/*! ./utils/buildPoly */ "./node_modules/pixi.js/lib/core/graphics/webgl/utils/buildPoly.js");
 
 var _buildPoly2 = _interopRequireDefault(_buildPoly);
 
-var _buildRectangle = __webpack_require__(/*! ./utils/buildRectangle */ "./node_modules/pixi.js/lib/core/graphics/webgl/utils/buildRectangle.js-exposed");
+var _buildRectangle = __webpack_require__(/*! ./utils/buildRectangle */ "./node_modules/pixi.js/lib/core/graphics/webgl/utils/buildRectangle.js");
 
 var _buildRectangle2 = _interopRequireDefault(_buildRectangle);
 
-var _buildRoundedRectangle = __webpack_require__(/*! ./utils/buildRoundedRectangle */ "./node_modules/pixi.js/lib/core/graphics/webgl/utils/buildRoundedRectangle.js-exposed");
+var _buildRoundedRectangle = __webpack_require__(/*! ./utils/buildRoundedRectangle */ "./node_modules/pixi.js/lib/core/graphics/webgl/utils/buildRoundedRectangle.js");
 
 var _buildRoundedRectangle2 = _interopRequireDefault(_buildRoundedRectangle);
 
-var _buildCircle = __webpack_require__(/*! ./utils/buildCircle */ "./node_modules/pixi.js/lib/core/graphics/webgl/utils/buildCircle.js-exposed");
+var _buildCircle = __webpack_require__(/*! ./utils/buildCircle */ "./node_modules/pixi.js/lib/core/graphics/webgl/utils/buildCircle.js");
 
 var _buildCircle2 = _interopRequireDefault(_buildCircle);
 
@@ -16610,19 +17320,6 @@ _WebGLRenderer2.default.registerPlugin('graphics', GraphicsRenderer);
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/core/graphics/webgl/GraphicsRenderer.js-exposed":
-/*!**********************************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/graphics/webgl/GraphicsRenderer.js-exposed ***!
-  \**********************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./GraphicsRenderer.js */ "./node_modules/pixi.js/lib/core/graphics/webgl/GraphicsRenderer.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/core/graphics/webgl/WebGLGraphicsData.js":
 /*!***************************************************************************!*\
   !*** ./node_modules/pixi.js/lib/core/graphics/webgl/WebGLGraphicsData.js ***!
@@ -16776,19 +17473,6 @@ exports.default = WebGLGraphicsData;
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/core/graphics/webgl/WebGLGraphicsData.js-exposed":
-/*!***********************************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/graphics/webgl/WebGLGraphicsData.js-exposed ***!
-  \***********************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./WebGLGraphicsData.js */ "./node_modules/pixi.js/lib/core/graphics/webgl/WebGLGraphicsData.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/core/graphics/webgl/shaders/PrimitiveShader.js":
 /*!*********************************************************************************!*\
   !*** ./node_modules/pixi.js/lib/core/graphics/webgl/shaders/PrimitiveShader.js ***!
@@ -16801,7 +17485,7 @@ module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./WebGLGraphic
 
 exports.__esModule = true;
 
-var _Shader2 = __webpack_require__(/*! ../../../Shader */ "./node_modules/pixi.js/lib/core/Shader.js-exposed");
+var _Shader2 = __webpack_require__(/*! ../../../Shader */ "./node_modules/pixi.js/lib/core/Shader.js");
 
 var _Shader3 = _interopRequireDefault(_Shader2);
 
@@ -16844,19 +17528,6 @@ exports.default = PrimitiveShader;
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/core/graphics/webgl/shaders/PrimitiveShader.js-exposed":
-/*!*****************************************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/graphics/webgl/shaders/PrimitiveShader.js-exposed ***!
-  \*****************************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./PrimitiveShader.js */ "./node_modules/pixi.js/lib/core/graphics/webgl/shaders/PrimitiveShader.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/core/graphics/webgl/utils/buildCircle.js":
 /*!***************************************************************************!*\
   !*** ./node_modules/pixi.js/lib/core/graphics/webgl/utils/buildCircle.js ***!
@@ -16870,13 +17541,13 @@ module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./PrimitiveSha
 exports.__esModule = true;
 exports.default = buildCircle;
 
-var _buildLine = __webpack_require__(/*! ./buildLine */ "./node_modules/pixi.js/lib/core/graphics/webgl/utils/buildLine.js-exposed");
+var _buildLine = __webpack_require__(/*! ./buildLine */ "./node_modules/pixi.js/lib/core/graphics/webgl/utils/buildLine.js");
 
 var _buildLine2 = _interopRequireDefault(_buildLine);
 
-var _const = __webpack_require__(/*! ../../../const */ "./node_modules/pixi.js/lib/core/const.js-exposed");
+var _const = __webpack_require__(/*! ../../../const */ "./node_modules/pixi.js/lib/core/const.js");
 
-var _utils = __webpack_require__(/*! ../../../utils */ "./node_modules/pixi.js/lib/core/utils/index.js-exposed");
+var _utils = __webpack_require__(/*! ../../../utils */ "./node_modules/pixi.js/lib/core/utils/index.js");
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -16962,19 +17633,6 @@ function buildCircle(graphicsData, webGLData, webGLDataNativeLines) {
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/core/graphics/webgl/utils/buildCircle.js-exposed":
-/*!***********************************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/graphics/webgl/utils/buildCircle.js-exposed ***!
-  \***********************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./buildCircle.js */ "./node_modules/pixi.js/lib/core/graphics/webgl/utils/buildCircle.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/core/graphics/webgl/utils/buildLine.js":
 /*!*************************************************************************!*\
   !*** ./node_modules/pixi.js/lib/core/graphics/webgl/utils/buildLine.js ***!
@@ -16995,9 +17653,9 @@ exports.default = function (graphicsData, webGLData, webGLDataNativeLines) {
     }
 };
 
-var _math = __webpack_require__(/*! ../../../math */ "./node_modules/pixi.js/lib/core/math/index.js-exposed");
+var _math = __webpack_require__(/*! ../../../math */ "./node_modules/pixi.js/lib/core/math/index.js");
 
-var _utils = __webpack_require__(/*! ../../../utils */ "./node_modules/pixi.js/lib/core/utils/index.js-exposed");
+var _utils = __webpack_require__(/*! ../../../utils */ "./node_modules/pixi.js/lib/core/utils/index.js");
 
 /**
  * Builds a line to draw using the poligon method.
@@ -17259,19 +17917,6 @@ function buildNativeLine(graphicsData, webGLData) {
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/core/graphics/webgl/utils/buildLine.js-exposed":
-/*!*********************************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/graphics/webgl/utils/buildLine.js-exposed ***!
-  \*********************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./buildLine.js */ "./node_modules/pixi.js/lib/core/graphics/webgl/utils/buildLine.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/core/graphics/webgl/utils/buildPoly.js":
 /*!*************************************************************************!*\
   !*** ./node_modules/pixi.js/lib/core/graphics/webgl/utils/buildPoly.js ***!
@@ -17285,11 +17930,11 @@ module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./buildLine.js
 exports.__esModule = true;
 exports.default = buildPoly;
 
-var _buildLine = __webpack_require__(/*! ./buildLine */ "./node_modules/pixi.js/lib/core/graphics/webgl/utils/buildLine.js-exposed");
+var _buildLine = __webpack_require__(/*! ./buildLine */ "./node_modules/pixi.js/lib/core/graphics/webgl/utils/buildLine.js");
 
 var _buildLine2 = _interopRequireDefault(_buildLine);
 
-var _utils = __webpack_require__(/*! ../../../utils */ "./node_modules/pixi.js/lib/core/utils/index.js-exposed");
+var _utils = __webpack_require__(/*! ../../../utils */ "./node_modules/pixi.js/lib/core/utils/index.js");
 
 var _earcut = __webpack_require__(/*! earcut */ "./node_modules/earcut/src/earcut.js");
 
@@ -17368,19 +18013,6 @@ function buildPoly(graphicsData, webGLData, webGLDataNativeLines) {
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/core/graphics/webgl/utils/buildPoly.js-exposed":
-/*!*********************************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/graphics/webgl/utils/buildPoly.js-exposed ***!
-  \*********************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./buildPoly.js */ "./node_modules/pixi.js/lib/core/graphics/webgl/utils/buildPoly.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/core/graphics/webgl/utils/buildRectangle.js":
 /*!******************************************************************************!*\
   !*** ./node_modules/pixi.js/lib/core/graphics/webgl/utils/buildRectangle.js ***!
@@ -17394,11 +18026,11 @@ module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./buildPoly.js
 exports.__esModule = true;
 exports.default = buildRectangle;
 
-var _buildLine = __webpack_require__(/*! ./buildLine */ "./node_modules/pixi.js/lib/core/graphics/webgl/utils/buildLine.js-exposed");
+var _buildLine = __webpack_require__(/*! ./buildLine */ "./node_modules/pixi.js/lib/core/graphics/webgl/utils/buildLine.js");
 
 var _buildLine2 = _interopRequireDefault(_buildLine);
 
-var _utils = __webpack_require__(/*! ../../../utils */ "./node_modules/pixi.js/lib/core/utils/index.js-exposed");
+var _utils = __webpack_require__(/*! ../../../utils */ "./node_modules/pixi.js/lib/core/utils/index.js");
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -17467,19 +18099,6 @@ function buildRectangle(graphicsData, webGLData, webGLDataNativeLines) {
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/core/graphics/webgl/utils/buildRectangle.js-exposed":
-/*!**************************************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/graphics/webgl/utils/buildRectangle.js-exposed ***!
-  \**************************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./buildRectangle.js */ "./node_modules/pixi.js/lib/core/graphics/webgl/utils/buildRectangle.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/core/graphics/webgl/utils/buildRoundedRectangle.js":
 /*!*************************************************************************************!*\
   !*** ./node_modules/pixi.js/lib/core/graphics/webgl/utils/buildRoundedRectangle.js ***!
@@ -17497,11 +18116,11 @@ var _earcut = __webpack_require__(/*! earcut */ "./node_modules/earcut/src/earcu
 
 var _earcut2 = _interopRequireDefault(_earcut);
 
-var _buildLine = __webpack_require__(/*! ./buildLine */ "./node_modules/pixi.js/lib/core/graphics/webgl/utils/buildLine.js-exposed");
+var _buildLine = __webpack_require__(/*! ./buildLine */ "./node_modules/pixi.js/lib/core/graphics/webgl/utils/buildLine.js");
 
 var _buildLine2 = _interopRequireDefault(_buildLine);
 
-var _utils = __webpack_require__(/*! ../../../utils */ "./node_modules/pixi.js/lib/core/utils/index.js-exposed");
+var _utils = __webpack_require__(/*! ../../../utils */ "./node_modules/pixi.js/lib/core/utils/index.js");
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -17646,19 +18265,6 @@ function quadraticBezierCurve(fromX, fromY, cpX, cpY, toX, toY) {
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/core/graphics/webgl/utils/buildRoundedRectangle.js-exposed":
-/*!*********************************************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/graphics/webgl/utils/buildRoundedRectangle.js-exposed ***!
-  \*********************************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./buildRoundedRectangle.js */ "./node_modules/pixi.js/lib/core/graphics/webgl/utils/buildRoundedRectangle.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/core/index.js":
 /*!************************************************!*\
   !*** ./node_modules/pixi.js/lib/core/index.js ***!
@@ -17672,7 +18278,7 @@ module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./buildRounded
 exports.__esModule = true;
 exports.autoDetectRenderer = exports.Application = exports.Filter = exports.SpriteMaskFilter = exports.Quad = exports.RenderTarget = exports.ObjectRenderer = exports.WebGLManager = exports.Shader = exports.CanvasRenderTarget = exports.TextureUvs = exports.VideoBaseTexture = exports.BaseRenderTexture = exports.RenderTexture = exports.BaseTexture = exports.TextureMatrix = exports.Texture = exports.Spritesheet = exports.CanvasGraphicsRenderer = exports.GraphicsRenderer = exports.GraphicsData = exports.Graphics = exports.TextMetrics = exports.TextStyle = exports.Text = exports.SpriteRenderer = exports.CanvasTinter = exports.CanvasSpriteRenderer = exports.Sprite = exports.TransformBase = exports.TransformStatic = exports.Transform = exports.Container = exports.DisplayObject = exports.Bounds = exports.glCore = exports.WebGLRenderer = exports.CanvasRenderer = exports.ticker = exports.utils = exports.settings = undefined;
 
-var _const = __webpack_require__(/*! ./const */ "./node_modules/pixi.js/lib/core/const.js-exposed");
+var _const = __webpack_require__(/*! ./const */ "./node_modules/pixi.js/lib/core/const.js");
 
 Object.keys(_const).forEach(function (key) {
   if (key === "default" || key === "__esModule") return;
@@ -17684,7 +18290,7 @@ Object.keys(_const).forEach(function (key) {
   });
 });
 
-var _math = __webpack_require__(/*! ./math */ "./node_modules/pixi.js/lib/core/math/index.js-exposed");
+var _math = __webpack_require__(/*! ./math */ "./node_modules/pixi.js/lib/core/math/index.js");
 
 Object.keys(_math).forEach(function (key) {
   if (key === "default" || key === "__esModule") return;
@@ -17705,7 +18311,7 @@ Object.defineProperty(exports, 'glCore', {
   }
 });
 
-var _Bounds = __webpack_require__(/*! ./display/Bounds */ "./node_modules/pixi.js/lib/core/display/Bounds.js-exposed");
+var _Bounds = __webpack_require__(/*! ./display/Bounds */ "./node_modules/pixi.js/lib/core/display/Bounds.js");
 
 Object.defineProperty(exports, 'Bounds', {
   enumerable: true,
@@ -17714,7 +18320,7 @@ Object.defineProperty(exports, 'Bounds', {
   }
 });
 
-var _DisplayObject = __webpack_require__(/*! ./display/DisplayObject */ "./node_modules/pixi.js/lib/core/display/DisplayObject.js-exposed");
+var _DisplayObject = __webpack_require__(/*! ./display/DisplayObject */ "./node_modules/pixi.js/lib/core/display/DisplayObject.js");
 
 Object.defineProperty(exports, 'DisplayObject', {
   enumerable: true,
@@ -17723,7 +18329,7 @@ Object.defineProperty(exports, 'DisplayObject', {
   }
 });
 
-var _Container = __webpack_require__(/*! ./display/Container */ "./node_modules/pixi.js/lib/core/display/Container.js-exposed");
+var _Container = __webpack_require__(/*! ./display/Container */ "./node_modules/pixi.js/lib/core/display/Container.js");
 
 Object.defineProperty(exports, 'Container', {
   enumerable: true,
@@ -17732,7 +18338,7 @@ Object.defineProperty(exports, 'Container', {
   }
 });
 
-var _Transform = __webpack_require__(/*! ./display/Transform */ "./node_modules/pixi.js/lib/core/display/Transform.js-exposed");
+var _Transform = __webpack_require__(/*! ./display/Transform */ "./node_modules/pixi.js/lib/core/display/Transform.js");
 
 Object.defineProperty(exports, 'Transform', {
   enumerable: true,
@@ -17741,7 +18347,7 @@ Object.defineProperty(exports, 'Transform', {
   }
 });
 
-var _TransformStatic = __webpack_require__(/*! ./display/TransformStatic */ "./node_modules/pixi.js/lib/core/display/TransformStatic.js-exposed");
+var _TransformStatic = __webpack_require__(/*! ./display/TransformStatic */ "./node_modules/pixi.js/lib/core/display/TransformStatic.js");
 
 Object.defineProperty(exports, 'TransformStatic', {
   enumerable: true,
@@ -17750,7 +18356,7 @@ Object.defineProperty(exports, 'TransformStatic', {
   }
 });
 
-var _TransformBase = __webpack_require__(/*! ./display/TransformBase */ "./node_modules/pixi.js/lib/core/display/TransformBase.js-exposed");
+var _TransformBase = __webpack_require__(/*! ./display/TransformBase */ "./node_modules/pixi.js/lib/core/display/TransformBase.js");
 
 Object.defineProperty(exports, 'TransformBase', {
   enumerable: true,
@@ -17759,7 +18365,7 @@ Object.defineProperty(exports, 'TransformBase', {
   }
 });
 
-var _Sprite = __webpack_require__(/*! ./sprites/Sprite */ "./node_modules/pixi.js/lib/core/sprites/Sprite.js-exposed");
+var _Sprite = __webpack_require__(/*! ./sprites/Sprite */ "./node_modules/pixi.js/lib/core/sprites/Sprite.js");
 
 Object.defineProperty(exports, 'Sprite', {
   enumerable: true,
@@ -17768,7 +18374,7 @@ Object.defineProperty(exports, 'Sprite', {
   }
 });
 
-var _CanvasSpriteRenderer = __webpack_require__(/*! ./sprites/canvas/CanvasSpriteRenderer */ "./node_modules/pixi.js/lib/core/sprites/canvas/CanvasSpriteRenderer.js-exposed");
+var _CanvasSpriteRenderer = __webpack_require__(/*! ./sprites/canvas/CanvasSpriteRenderer */ "./node_modules/pixi.js/lib/core/sprites/canvas/CanvasSpriteRenderer.js");
 
 Object.defineProperty(exports, 'CanvasSpriteRenderer', {
   enumerable: true,
@@ -17777,7 +18383,7 @@ Object.defineProperty(exports, 'CanvasSpriteRenderer', {
   }
 });
 
-var _CanvasTinter = __webpack_require__(/*! ./sprites/canvas/CanvasTinter */ "./node_modules/pixi.js/lib/core/sprites/canvas/CanvasTinter.js-exposed");
+var _CanvasTinter = __webpack_require__(/*! ./sprites/canvas/CanvasTinter */ "./node_modules/pixi.js/lib/core/sprites/canvas/CanvasTinter.js");
 
 Object.defineProperty(exports, 'CanvasTinter', {
   enumerable: true,
@@ -17786,7 +18392,7 @@ Object.defineProperty(exports, 'CanvasTinter', {
   }
 });
 
-var _SpriteRenderer = __webpack_require__(/*! ./sprites/webgl/SpriteRenderer */ "./node_modules/pixi.js/lib/core/sprites/webgl/SpriteRenderer.js-exposed");
+var _SpriteRenderer = __webpack_require__(/*! ./sprites/webgl/SpriteRenderer */ "./node_modules/pixi.js/lib/core/sprites/webgl/SpriteRenderer.js");
 
 Object.defineProperty(exports, 'SpriteRenderer', {
   enumerable: true,
@@ -17795,7 +18401,7 @@ Object.defineProperty(exports, 'SpriteRenderer', {
   }
 });
 
-var _Text = __webpack_require__(/*! ./text/Text */ "./node_modules/pixi.js/lib/core/text/Text.js-exposed");
+var _Text = __webpack_require__(/*! ./text/Text */ "./node_modules/pixi.js/lib/core/text/Text.js");
 
 Object.defineProperty(exports, 'Text', {
   enumerable: true,
@@ -17804,7 +18410,7 @@ Object.defineProperty(exports, 'Text', {
   }
 });
 
-var _TextStyle = __webpack_require__(/*! ./text/TextStyle */ "./node_modules/pixi.js/lib/core/text/TextStyle.js-exposed");
+var _TextStyle = __webpack_require__(/*! ./text/TextStyle */ "./node_modules/pixi.js/lib/core/text/TextStyle.js");
 
 Object.defineProperty(exports, 'TextStyle', {
   enumerable: true,
@@ -17813,7 +18419,7 @@ Object.defineProperty(exports, 'TextStyle', {
   }
 });
 
-var _TextMetrics = __webpack_require__(/*! ./text/TextMetrics */ "./node_modules/pixi.js/lib/core/text/TextMetrics.js-exposed");
+var _TextMetrics = __webpack_require__(/*! ./text/TextMetrics */ "./node_modules/pixi.js/lib/core/text/TextMetrics.js");
 
 Object.defineProperty(exports, 'TextMetrics', {
   enumerable: true,
@@ -17822,7 +18428,7 @@ Object.defineProperty(exports, 'TextMetrics', {
   }
 });
 
-var _Graphics = __webpack_require__(/*! ./graphics/Graphics */ "./node_modules/pixi.js/lib/core/graphics/Graphics.js-exposed");
+var _Graphics = __webpack_require__(/*! ./graphics/Graphics */ "./node_modules/pixi.js/lib/core/graphics/Graphics.js");
 
 Object.defineProperty(exports, 'Graphics', {
   enumerable: true,
@@ -17831,7 +18437,7 @@ Object.defineProperty(exports, 'Graphics', {
   }
 });
 
-var _GraphicsData = __webpack_require__(/*! ./graphics/GraphicsData */ "./node_modules/pixi.js/lib/core/graphics/GraphicsData.js-exposed");
+var _GraphicsData = __webpack_require__(/*! ./graphics/GraphicsData */ "./node_modules/pixi.js/lib/core/graphics/GraphicsData.js");
 
 Object.defineProperty(exports, 'GraphicsData', {
   enumerable: true,
@@ -17840,7 +18446,7 @@ Object.defineProperty(exports, 'GraphicsData', {
   }
 });
 
-var _GraphicsRenderer = __webpack_require__(/*! ./graphics/webgl/GraphicsRenderer */ "./node_modules/pixi.js/lib/core/graphics/webgl/GraphicsRenderer.js-exposed");
+var _GraphicsRenderer = __webpack_require__(/*! ./graphics/webgl/GraphicsRenderer */ "./node_modules/pixi.js/lib/core/graphics/webgl/GraphicsRenderer.js");
 
 Object.defineProperty(exports, 'GraphicsRenderer', {
   enumerable: true,
@@ -17849,7 +18455,7 @@ Object.defineProperty(exports, 'GraphicsRenderer', {
   }
 });
 
-var _CanvasGraphicsRenderer = __webpack_require__(/*! ./graphics/canvas/CanvasGraphicsRenderer */ "./node_modules/pixi.js/lib/core/graphics/canvas/CanvasGraphicsRenderer.js-exposed");
+var _CanvasGraphicsRenderer = __webpack_require__(/*! ./graphics/canvas/CanvasGraphicsRenderer */ "./node_modules/pixi.js/lib/core/graphics/canvas/CanvasGraphicsRenderer.js");
 
 Object.defineProperty(exports, 'CanvasGraphicsRenderer', {
   enumerable: true,
@@ -17858,7 +18464,7 @@ Object.defineProperty(exports, 'CanvasGraphicsRenderer', {
   }
 });
 
-var _Spritesheet = __webpack_require__(/*! ./textures/Spritesheet */ "./node_modules/pixi.js/lib/core/textures/Spritesheet.js-exposed");
+var _Spritesheet = __webpack_require__(/*! ./textures/Spritesheet */ "./node_modules/pixi.js/lib/core/textures/Spritesheet.js");
 
 Object.defineProperty(exports, 'Spritesheet', {
   enumerable: true,
@@ -17867,7 +18473,7 @@ Object.defineProperty(exports, 'Spritesheet', {
   }
 });
 
-var _Texture = __webpack_require__(/*! ./textures/Texture */ "./node_modules/pixi.js/lib/core/textures/Texture.js-exposed");
+var _Texture = __webpack_require__(/*! ./textures/Texture */ "./node_modules/pixi.js/lib/core/textures/Texture.js");
 
 Object.defineProperty(exports, 'Texture', {
   enumerable: true,
@@ -17876,7 +18482,7 @@ Object.defineProperty(exports, 'Texture', {
   }
 });
 
-var _TextureMatrix = __webpack_require__(/*! ./textures/TextureMatrix */ "./node_modules/pixi.js/lib/core/textures/TextureMatrix.js-exposed");
+var _TextureMatrix = __webpack_require__(/*! ./textures/TextureMatrix */ "./node_modules/pixi.js/lib/core/textures/TextureMatrix.js");
 
 Object.defineProperty(exports, 'TextureMatrix', {
   enumerable: true,
@@ -17885,7 +18491,7 @@ Object.defineProperty(exports, 'TextureMatrix', {
   }
 });
 
-var _BaseTexture = __webpack_require__(/*! ./textures/BaseTexture */ "./node_modules/pixi.js/lib/core/textures/BaseTexture.js-exposed");
+var _BaseTexture = __webpack_require__(/*! ./textures/BaseTexture */ "./node_modules/pixi.js/lib/core/textures/BaseTexture.js");
 
 Object.defineProperty(exports, 'BaseTexture', {
   enumerable: true,
@@ -17894,7 +18500,7 @@ Object.defineProperty(exports, 'BaseTexture', {
   }
 });
 
-var _RenderTexture = __webpack_require__(/*! ./textures/RenderTexture */ "./node_modules/pixi.js/lib/core/textures/RenderTexture.js-exposed");
+var _RenderTexture = __webpack_require__(/*! ./textures/RenderTexture */ "./node_modules/pixi.js/lib/core/textures/RenderTexture.js");
 
 Object.defineProperty(exports, 'RenderTexture', {
   enumerable: true,
@@ -17903,7 +18509,7 @@ Object.defineProperty(exports, 'RenderTexture', {
   }
 });
 
-var _BaseRenderTexture = __webpack_require__(/*! ./textures/BaseRenderTexture */ "./node_modules/pixi.js/lib/core/textures/BaseRenderTexture.js-exposed");
+var _BaseRenderTexture = __webpack_require__(/*! ./textures/BaseRenderTexture */ "./node_modules/pixi.js/lib/core/textures/BaseRenderTexture.js");
 
 Object.defineProperty(exports, 'BaseRenderTexture', {
   enumerable: true,
@@ -17912,7 +18518,7 @@ Object.defineProperty(exports, 'BaseRenderTexture', {
   }
 });
 
-var _VideoBaseTexture = __webpack_require__(/*! ./textures/VideoBaseTexture */ "./node_modules/pixi.js/lib/core/textures/VideoBaseTexture.js-exposed");
+var _VideoBaseTexture = __webpack_require__(/*! ./textures/VideoBaseTexture */ "./node_modules/pixi.js/lib/core/textures/VideoBaseTexture.js");
 
 Object.defineProperty(exports, 'VideoBaseTexture', {
   enumerable: true,
@@ -17921,7 +18527,7 @@ Object.defineProperty(exports, 'VideoBaseTexture', {
   }
 });
 
-var _TextureUvs = __webpack_require__(/*! ./textures/TextureUvs */ "./node_modules/pixi.js/lib/core/textures/TextureUvs.js-exposed");
+var _TextureUvs = __webpack_require__(/*! ./textures/TextureUvs */ "./node_modules/pixi.js/lib/core/textures/TextureUvs.js");
 
 Object.defineProperty(exports, 'TextureUvs', {
   enumerable: true,
@@ -17930,7 +18536,7 @@ Object.defineProperty(exports, 'TextureUvs', {
   }
 });
 
-var _CanvasRenderTarget = __webpack_require__(/*! ./renderers/canvas/utils/CanvasRenderTarget */ "./node_modules/pixi.js/lib/core/renderers/canvas/utils/CanvasRenderTarget.js-exposed");
+var _CanvasRenderTarget = __webpack_require__(/*! ./renderers/canvas/utils/CanvasRenderTarget */ "./node_modules/pixi.js/lib/core/renderers/canvas/utils/CanvasRenderTarget.js");
 
 Object.defineProperty(exports, 'CanvasRenderTarget', {
   enumerable: true,
@@ -17939,7 +18545,7 @@ Object.defineProperty(exports, 'CanvasRenderTarget', {
   }
 });
 
-var _Shader = __webpack_require__(/*! ./Shader */ "./node_modules/pixi.js/lib/core/Shader.js-exposed");
+var _Shader = __webpack_require__(/*! ./Shader */ "./node_modules/pixi.js/lib/core/Shader.js");
 
 Object.defineProperty(exports, 'Shader', {
   enumerable: true,
@@ -17948,7 +18554,7 @@ Object.defineProperty(exports, 'Shader', {
   }
 });
 
-var _WebGLManager = __webpack_require__(/*! ./renderers/webgl/managers/WebGLManager */ "./node_modules/pixi.js/lib/core/renderers/webgl/managers/WebGLManager.js-exposed");
+var _WebGLManager = __webpack_require__(/*! ./renderers/webgl/managers/WebGLManager */ "./node_modules/pixi.js/lib/core/renderers/webgl/managers/WebGLManager.js");
 
 Object.defineProperty(exports, 'WebGLManager', {
   enumerable: true,
@@ -17957,7 +18563,7 @@ Object.defineProperty(exports, 'WebGLManager', {
   }
 });
 
-var _ObjectRenderer = __webpack_require__(/*! ./renderers/webgl/utils/ObjectRenderer */ "./node_modules/pixi.js/lib/core/renderers/webgl/utils/ObjectRenderer.js-exposed");
+var _ObjectRenderer = __webpack_require__(/*! ./renderers/webgl/utils/ObjectRenderer */ "./node_modules/pixi.js/lib/core/renderers/webgl/utils/ObjectRenderer.js");
 
 Object.defineProperty(exports, 'ObjectRenderer', {
   enumerable: true,
@@ -17966,7 +18572,7 @@ Object.defineProperty(exports, 'ObjectRenderer', {
   }
 });
 
-var _RenderTarget = __webpack_require__(/*! ./renderers/webgl/utils/RenderTarget */ "./node_modules/pixi.js/lib/core/renderers/webgl/utils/RenderTarget.js-exposed");
+var _RenderTarget = __webpack_require__(/*! ./renderers/webgl/utils/RenderTarget */ "./node_modules/pixi.js/lib/core/renderers/webgl/utils/RenderTarget.js");
 
 Object.defineProperty(exports, 'RenderTarget', {
   enumerable: true,
@@ -17975,7 +18581,7 @@ Object.defineProperty(exports, 'RenderTarget', {
   }
 });
 
-var _Quad = __webpack_require__(/*! ./renderers/webgl/utils/Quad */ "./node_modules/pixi.js/lib/core/renderers/webgl/utils/Quad.js-exposed");
+var _Quad = __webpack_require__(/*! ./renderers/webgl/utils/Quad */ "./node_modules/pixi.js/lib/core/renderers/webgl/utils/Quad.js");
 
 Object.defineProperty(exports, 'Quad', {
   enumerable: true,
@@ -17984,7 +18590,7 @@ Object.defineProperty(exports, 'Quad', {
   }
 });
 
-var _SpriteMaskFilter = __webpack_require__(/*! ./renderers/webgl/filters/spriteMask/SpriteMaskFilter */ "./node_modules/pixi.js/lib/core/renderers/webgl/filters/spriteMask/SpriteMaskFilter.js-exposed");
+var _SpriteMaskFilter = __webpack_require__(/*! ./renderers/webgl/filters/spriteMask/SpriteMaskFilter */ "./node_modules/pixi.js/lib/core/renderers/webgl/filters/spriteMask/SpriteMaskFilter.js");
 
 Object.defineProperty(exports, 'SpriteMaskFilter', {
   enumerable: true,
@@ -17993,7 +18599,7 @@ Object.defineProperty(exports, 'SpriteMaskFilter', {
   }
 });
 
-var _Filter = __webpack_require__(/*! ./renderers/webgl/filters/Filter */ "./node_modules/pixi.js/lib/core/renderers/webgl/filters/Filter.js-exposed");
+var _Filter = __webpack_require__(/*! ./renderers/webgl/filters/Filter */ "./node_modules/pixi.js/lib/core/renderers/webgl/filters/Filter.js");
 
 Object.defineProperty(exports, 'Filter', {
   enumerable: true,
@@ -18002,7 +18608,7 @@ Object.defineProperty(exports, 'Filter', {
   }
 });
 
-var _Application = __webpack_require__(/*! ./Application */ "./node_modules/pixi.js/lib/core/Application.js-exposed");
+var _Application = __webpack_require__(/*! ./Application */ "./node_modules/pixi.js/lib/core/Application.js");
 
 Object.defineProperty(exports, 'Application', {
   enumerable: true,
@@ -18011,7 +18617,7 @@ Object.defineProperty(exports, 'Application', {
   }
 });
 
-var _autoDetectRenderer = __webpack_require__(/*! ./autoDetectRenderer */ "./node_modules/pixi.js/lib/core/autoDetectRenderer.js-exposed");
+var _autoDetectRenderer = __webpack_require__(/*! ./autoDetectRenderer */ "./node_modules/pixi.js/lib/core/autoDetectRenderer.js");
 
 Object.defineProperty(exports, 'autoDetectRenderer', {
   enumerable: true,
@@ -18020,23 +18626,23 @@ Object.defineProperty(exports, 'autoDetectRenderer', {
   }
 });
 
-var _utils = __webpack_require__(/*! ./utils */ "./node_modules/pixi.js/lib/core/utils/index.js-exposed");
+var _utils = __webpack_require__(/*! ./utils */ "./node_modules/pixi.js/lib/core/utils/index.js");
 
 var utils = _interopRequireWildcard(_utils);
 
-var _ticker = __webpack_require__(/*! ./ticker */ "./node_modules/pixi.js/lib/core/ticker/index.js-exposed");
+var _ticker = __webpack_require__(/*! ./ticker */ "./node_modules/pixi.js/lib/core/ticker/index.js");
 
 var ticker = _interopRequireWildcard(_ticker);
 
-var _settings = __webpack_require__(/*! ./settings */ "./node_modules/pixi.js/lib/core/settings.js-exposed");
+var _settings = __webpack_require__(/*! ./settings */ "./node_modules/pixi.js/lib/core/settings.js");
 
 var _settings2 = _interopRequireDefault(_settings);
 
-var _CanvasRenderer = __webpack_require__(/*! ./renderers/canvas/CanvasRenderer */ "./node_modules/pixi.js/lib/core/renderers/canvas/CanvasRenderer.js-exposed");
+var _CanvasRenderer = __webpack_require__(/*! ./renderers/canvas/CanvasRenderer */ "./node_modules/pixi.js/lib/core/renderers/canvas/CanvasRenderer.js");
 
 var _CanvasRenderer2 = _interopRequireDefault(_CanvasRenderer);
 
-var _WebGLRenderer = __webpack_require__(/*! ./renderers/webgl/WebGLRenderer */ "./node_modules/pixi.js/lib/core/renderers/webgl/WebGLRenderer.js-exposed");
+var _WebGLRenderer = __webpack_require__(/*! ./renderers/webgl/WebGLRenderer */ "./node_modules/pixi.js/lib/core/renderers/webgl/WebGLRenderer.js");
 
 var _WebGLRenderer2 = _interopRequireDefault(_WebGLRenderer);
 
@@ -18055,19 +18661,6 @@ exports.WebGLRenderer = _WebGLRenderer2.default; /**
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/core/index.js-exposed":
-/*!********************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/index.js-exposed ***!
-  \********************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./index.js */ "./node_modules/pixi.js/lib/core/index.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/core/math/GroupD8.js":
 /*!*******************************************************!*\
   !*** ./node_modules/pixi.js/lib/core/math/GroupD8.js ***!
@@ -18080,7 +18673,7 @@ module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./index.js */ 
 
 exports.__esModule = true;
 
-var _Matrix = __webpack_require__(/*! ./Matrix */ "./node_modules/pixi.js/lib/core/math/Matrix.js-exposed");
+var _Matrix = __webpack_require__(/*! ./Matrix */ "./node_modules/pixi.js/lib/core/math/Matrix.js");
 
 var _Matrix2 = _interopRequireDefault(_Matrix);
 
@@ -18271,19 +18864,6 @@ exports.default = GroupD8;
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/core/math/GroupD8.js-exposed":
-/*!***************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/math/GroupD8.js-exposed ***!
-  \***************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./GroupD8.js */ "./node_modules/pixi.js/lib/core/math/GroupD8.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/core/math/Matrix.js":
 /*!******************************************************!*\
   !*** ./node_modules/pixi.js/lib/core/math/Matrix.js ***!
@@ -18298,11 +18878,11 @@ exports.__esModule = true;
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _Point = __webpack_require__(/*! ./Point */ "./node_modules/pixi.js/lib/core/math/Point.js-exposed");
+var _Point = __webpack_require__(/*! ./Point */ "./node_modules/pixi.js/lib/core/math/Point.js");
 
 var _Point2 = _interopRequireDefault(_Point);
 
-var _const = __webpack_require__(/*! ../const */ "./node_modules/pixi.js/lib/core/const.js-exposed");
+var _const = __webpack_require__(/*! ../const */ "./node_modules/pixi.js/lib/core/const.js");
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -18816,19 +19396,6 @@ exports.default = Matrix;
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/core/math/Matrix.js-exposed":
-/*!**************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/math/Matrix.js-exposed ***!
-  \**************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./Matrix.js */ "./node_modules/pixi.js/lib/core/math/Matrix.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/core/math/ObservablePoint.js":
 /*!***************************************************************!*\
   !*** ./node_modules/pixi.js/lib/core/math/ObservablePoint.js ***!
@@ -18990,19 +19557,6 @@ exports.default = ObservablePoint;
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/core/math/ObservablePoint.js-exposed":
-/*!***********************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/math/ObservablePoint.js-exposed ***!
-  \***********************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./ObservablePoint.js */ "./node_modules/pixi.js/lib/core/math/ObservablePoint.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/core/math/Point.js":
 /*!*****************************************************!*\
   !*** ./node_modules/pixi.js/lib/core/math/Point.js ***!
@@ -19104,19 +19658,6 @@ exports.default = Point;
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/core/math/Point.js-exposed":
-/*!*************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/math/Point.js-exposed ***!
-  \*************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./Point.js */ "./node_modules/pixi.js/lib/core/math/Point.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/core/math/index.js":
 /*!*****************************************************!*\
   !*** ./node_modules/pixi.js/lib/core/math/index.js ***!
@@ -19129,7 +19670,7 @@ module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./Point.js */ 
 
 exports.__esModule = true;
 
-var _Point = __webpack_require__(/*! ./Point */ "./node_modules/pixi.js/lib/core/math/Point.js-exposed");
+var _Point = __webpack_require__(/*! ./Point */ "./node_modules/pixi.js/lib/core/math/Point.js");
 
 Object.defineProperty(exports, 'Point', {
   enumerable: true,
@@ -19138,7 +19679,7 @@ Object.defineProperty(exports, 'Point', {
   }
 });
 
-var _ObservablePoint = __webpack_require__(/*! ./ObservablePoint */ "./node_modules/pixi.js/lib/core/math/ObservablePoint.js-exposed");
+var _ObservablePoint = __webpack_require__(/*! ./ObservablePoint */ "./node_modules/pixi.js/lib/core/math/ObservablePoint.js");
 
 Object.defineProperty(exports, 'ObservablePoint', {
   enumerable: true,
@@ -19147,7 +19688,7 @@ Object.defineProperty(exports, 'ObservablePoint', {
   }
 });
 
-var _Matrix = __webpack_require__(/*! ./Matrix */ "./node_modules/pixi.js/lib/core/math/Matrix.js-exposed");
+var _Matrix = __webpack_require__(/*! ./Matrix */ "./node_modules/pixi.js/lib/core/math/Matrix.js");
 
 Object.defineProperty(exports, 'Matrix', {
   enumerable: true,
@@ -19156,7 +19697,7 @@ Object.defineProperty(exports, 'Matrix', {
   }
 });
 
-var _GroupD = __webpack_require__(/*! ./GroupD8 */ "./node_modules/pixi.js/lib/core/math/GroupD8.js-exposed");
+var _GroupD = __webpack_require__(/*! ./GroupD8 */ "./node_modules/pixi.js/lib/core/math/GroupD8.js");
 
 Object.defineProperty(exports, 'GroupD8', {
   enumerable: true,
@@ -19165,7 +19706,7 @@ Object.defineProperty(exports, 'GroupD8', {
   }
 });
 
-var _Circle = __webpack_require__(/*! ./shapes/Circle */ "./node_modules/pixi.js/lib/core/math/shapes/Circle.js-exposed");
+var _Circle = __webpack_require__(/*! ./shapes/Circle */ "./node_modules/pixi.js/lib/core/math/shapes/Circle.js");
 
 Object.defineProperty(exports, 'Circle', {
   enumerable: true,
@@ -19174,7 +19715,7 @@ Object.defineProperty(exports, 'Circle', {
   }
 });
 
-var _Ellipse = __webpack_require__(/*! ./shapes/Ellipse */ "./node_modules/pixi.js/lib/core/math/shapes/Ellipse.js-exposed");
+var _Ellipse = __webpack_require__(/*! ./shapes/Ellipse */ "./node_modules/pixi.js/lib/core/math/shapes/Ellipse.js");
 
 Object.defineProperty(exports, 'Ellipse', {
   enumerable: true,
@@ -19183,7 +19724,7 @@ Object.defineProperty(exports, 'Ellipse', {
   }
 });
 
-var _Polygon = __webpack_require__(/*! ./shapes/Polygon */ "./node_modules/pixi.js/lib/core/math/shapes/Polygon.js-exposed");
+var _Polygon = __webpack_require__(/*! ./shapes/Polygon */ "./node_modules/pixi.js/lib/core/math/shapes/Polygon.js");
 
 Object.defineProperty(exports, 'Polygon', {
   enumerable: true,
@@ -19192,7 +19733,7 @@ Object.defineProperty(exports, 'Polygon', {
   }
 });
 
-var _Rectangle = __webpack_require__(/*! ./shapes/Rectangle */ "./node_modules/pixi.js/lib/core/math/shapes/Rectangle.js-exposed");
+var _Rectangle = __webpack_require__(/*! ./shapes/Rectangle */ "./node_modules/pixi.js/lib/core/math/shapes/Rectangle.js");
 
 Object.defineProperty(exports, 'Rectangle', {
   enumerable: true,
@@ -19201,7 +19742,7 @@ Object.defineProperty(exports, 'Rectangle', {
   }
 });
 
-var _RoundedRectangle = __webpack_require__(/*! ./shapes/RoundedRectangle */ "./node_modules/pixi.js/lib/core/math/shapes/RoundedRectangle.js-exposed");
+var _RoundedRectangle = __webpack_require__(/*! ./shapes/RoundedRectangle */ "./node_modules/pixi.js/lib/core/math/shapes/RoundedRectangle.js");
 
 Object.defineProperty(exports, 'RoundedRectangle', {
   enumerable: true,
@@ -19212,19 +19753,6 @@ Object.defineProperty(exports, 'RoundedRectangle', {
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 //# sourceMappingURL=index.js.map
-
-/***/ }),
-
-/***/ "./node_modules/pixi.js/lib/core/math/index.js-exposed":
-/*!*************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/math/index.js-exposed ***!
-  \*************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./index.js */ "./node_modules/pixi.js/lib/core/math/index.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
 
 /***/ }),
 
@@ -19240,11 +19768,11 @@ module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./index.js */ 
 
 exports.__esModule = true;
 
-var _Rectangle = __webpack_require__(/*! ./Rectangle */ "./node_modules/pixi.js/lib/core/math/shapes/Rectangle.js-exposed");
+var _Rectangle = __webpack_require__(/*! ./Rectangle */ "./node_modules/pixi.js/lib/core/math/shapes/Rectangle.js");
 
 var _Rectangle2 = _interopRequireDefault(_Rectangle);
 
-var _const = __webpack_require__(/*! ../../const */ "./node_modules/pixi.js/lib/core/const.js-exposed");
+var _const = __webpack_require__(/*! ../../const */ "./node_modules/pixi.js/lib/core/const.js");
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -19352,19 +19880,6 @@ exports.default = Circle;
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/core/math/shapes/Circle.js-exposed":
-/*!*********************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/math/shapes/Circle.js-exposed ***!
-  \*********************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./Circle.js */ "./node_modules/pixi.js/lib/core/math/shapes/Circle.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/core/math/shapes/Ellipse.js":
 /*!**************************************************************!*\
   !*** ./node_modules/pixi.js/lib/core/math/shapes/Ellipse.js ***!
@@ -19377,11 +19892,11 @@ module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./Circle.js */
 
 exports.__esModule = true;
 
-var _Rectangle = __webpack_require__(/*! ./Rectangle */ "./node_modules/pixi.js/lib/core/math/shapes/Rectangle.js-exposed");
+var _Rectangle = __webpack_require__(/*! ./Rectangle */ "./node_modules/pixi.js/lib/core/math/shapes/Rectangle.js");
 
 var _Rectangle2 = _interopRequireDefault(_Rectangle);
 
-var _const = __webpack_require__(/*! ../../const */ "./node_modules/pixi.js/lib/core/const.js-exposed");
+var _const = __webpack_require__(/*! ../../const */ "./node_modules/pixi.js/lib/core/const.js");
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -19497,19 +20012,6 @@ exports.default = Ellipse;
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/core/math/shapes/Ellipse.js-exposed":
-/*!**********************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/math/shapes/Ellipse.js-exposed ***!
-  \**********************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./Ellipse.js */ "./node_modules/pixi.js/lib/core/math/shapes/Ellipse.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/core/math/shapes/Polygon.js":
 /*!**************************************************************!*\
   !*** ./node_modules/pixi.js/lib/core/math/shapes/Polygon.js ***!
@@ -19522,11 +20024,11 @@ module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./Ellipse.js *
 
 exports.__esModule = true;
 
-var _Point = __webpack_require__(/*! ../Point */ "./node_modules/pixi.js/lib/core/math/Point.js-exposed");
+var _Point = __webpack_require__(/*! ../Point */ "./node_modules/pixi.js/lib/core/math/Point.js");
 
 var _Point2 = _interopRequireDefault(_Point);
 
-var _const = __webpack_require__(/*! ../../const */ "./node_modules/pixi.js/lib/core/const.js-exposed");
+var _const = __webpack_require__(/*! ../../const */ "./node_modules/pixi.js/lib/core/const.js");
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -19651,19 +20153,6 @@ exports.default = Polygon;
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/core/math/shapes/Polygon.js-exposed":
-/*!**********************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/math/shapes/Polygon.js-exposed ***!
-  \**********************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./Polygon.js */ "./node_modules/pixi.js/lib/core/math/shapes/Polygon.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/core/math/shapes/Rectangle.js":
 /*!****************************************************************!*\
   !*** ./node_modules/pixi.js/lib/core/math/shapes/Rectangle.js ***!
@@ -19678,7 +20167,7 @@ exports.__esModule = true;
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _const = __webpack_require__(/*! ../../const */ "./node_modules/pixi.js/lib/core/const.js-exposed");
+var _const = __webpack_require__(/*! ../../const */ "./node_modules/pixi.js/lib/core/const.js");
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
@@ -19937,19 +20426,6 @@ exports.default = Rectangle;
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/core/math/shapes/Rectangle.js-exposed":
-/*!************************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/math/shapes/Rectangle.js-exposed ***!
-  \************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./Rectangle.js */ "./node_modules/pixi.js/lib/core/math/shapes/Rectangle.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/core/math/shapes/RoundedRectangle.js":
 /*!***********************************************************************!*\
   !*** ./node_modules/pixi.js/lib/core/math/shapes/RoundedRectangle.js ***!
@@ -19962,7 +20438,7 @@ module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./Rectangle.js
 
 exports.__esModule = true;
 
-var _const = __webpack_require__(/*! ../../const */ "./node_modules/pixi.js/lib/core/const.js-exposed");
+var _const = __webpack_require__(/*! ../../const */ "./node_modules/pixi.js/lib/core/const.js");
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
@@ -20093,19 +20569,6 @@ exports.default = RoundedRectangle;
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/core/math/shapes/RoundedRectangle.js-exposed":
-/*!*******************************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/math/shapes/RoundedRectangle.js-exposed ***!
-  \*******************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./RoundedRectangle.js */ "./node_modules/pixi.js/lib/core/math/shapes/RoundedRectangle.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/core/renderers/SystemRenderer.js":
 /*!*******************************************************************!*\
   !*** ./node_modules/pixi.js/lib/core/renderers/SystemRenderer.js ***!
@@ -20120,25 +20583,25 @@ exports.__esModule = true;
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _utils = __webpack_require__(/*! ../utils */ "./node_modules/pixi.js/lib/core/utils/index.js-exposed");
+var _utils = __webpack_require__(/*! ../utils */ "./node_modules/pixi.js/lib/core/utils/index.js");
 
-var _math = __webpack_require__(/*! ../math */ "./node_modules/pixi.js/lib/core/math/index.js-exposed");
+var _math = __webpack_require__(/*! ../math */ "./node_modules/pixi.js/lib/core/math/index.js");
 
-var _const = __webpack_require__(/*! ../const */ "./node_modules/pixi.js/lib/core/const.js-exposed");
+var _const = __webpack_require__(/*! ../const */ "./node_modules/pixi.js/lib/core/const.js");
 
-var _settings = __webpack_require__(/*! ../settings */ "./node_modules/pixi.js/lib/core/settings.js-exposed");
+var _settings = __webpack_require__(/*! ../settings */ "./node_modules/pixi.js/lib/core/settings.js");
 
 var _settings2 = _interopRequireDefault(_settings);
 
-var _Container = __webpack_require__(/*! ../display/Container */ "./node_modules/pixi.js/lib/core/display/Container.js-exposed");
+var _Container = __webpack_require__(/*! ../display/Container */ "./node_modules/pixi.js/lib/core/display/Container.js");
 
 var _Container2 = _interopRequireDefault(_Container);
 
-var _RenderTexture = __webpack_require__(/*! ../textures/RenderTexture */ "./node_modules/pixi.js/lib/core/textures/RenderTexture.js-exposed");
+var _RenderTexture = __webpack_require__(/*! ../textures/RenderTexture */ "./node_modules/pixi.js/lib/core/textures/RenderTexture.js");
 
 var _RenderTexture2 = _interopRequireDefault(_RenderTexture);
 
-var _eventemitter = __webpack_require__(/*! eventemitter3 */ "./node_modules/pixi.js/node_modules/eventemitter3/index.js-exposed");
+var _eventemitter = __webpack_require__(/*! eventemitter3 */ "./node_modules/pixi.js/node_modules/eventemitter3/index.js");
 
 var _eventemitter2 = _interopRequireDefault(_eventemitter);
 
@@ -20481,19 +20944,6 @@ exports.default = SystemRenderer;
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/core/renderers/SystemRenderer.js-exposed":
-/*!***************************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/renderers/SystemRenderer.js-exposed ***!
-  \***************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./SystemRenderer.js */ "./node_modules/pixi.js/lib/core/renderers/SystemRenderer.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/core/renderers/canvas/CanvasRenderer.js":
 /*!**************************************************************************!*\
   !*** ./node_modules/pixi.js/lib/core/renderers/canvas/CanvasRenderer.js ***!
@@ -20506,27 +20956,27 @@ module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./SystemRender
 
 exports.__esModule = true;
 
-var _SystemRenderer2 = __webpack_require__(/*! ../SystemRenderer */ "./node_modules/pixi.js/lib/core/renderers/SystemRenderer.js-exposed");
+var _SystemRenderer2 = __webpack_require__(/*! ../SystemRenderer */ "./node_modules/pixi.js/lib/core/renderers/SystemRenderer.js");
 
 var _SystemRenderer3 = _interopRequireDefault(_SystemRenderer2);
 
-var _CanvasMaskManager = __webpack_require__(/*! ./utils/CanvasMaskManager */ "./node_modules/pixi.js/lib/core/renderers/canvas/utils/CanvasMaskManager.js-exposed");
+var _CanvasMaskManager = __webpack_require__(/*! ./utils/CanvasMaskManager */ "./node_modules/pixi.js/lib/core/renderers/canvas/utils/CanvasMaskManager.js");
 
 var _CanvasMaskManager2 = _interopRequireDefault(_CanvasMaskManager);
 
-var _CanvasRenderTarget = __webpack_require__(/*! ./utils/CanvasRenderTarget */ "./node_modules/pixi.js/lib/core/renderers/canvas/utils/CanvasRenderTarget.js-exposed");
+var _CanvasRenderTarget = __webpack_require__(/*! ./utils/CanvasRenderTarget */ "./node_modules/pixi.js/lib/core/renderers/canvas/utils/CanvasRenderTarget.js");
 
 var _CanvasRenderTarget2 = _interopRequireDefault(_CanvasRenderTarget);
 
-var _mapCanvasBlendModesToPixi = __webpack_require__(/*! ./utils/mapCanvasBlendModesToPixi */ "./node_modules/pixi.js/lib/core/renderers/canvas/utils/mapCanvasBlendModesToPixi.js-exposed");
+var _mapCanvasBlendModesToPixi = __webpack_require__(/*! ./utils/mapCanvasBlendModesToPixi */ "./node_modules/pixi.js/lib/core/renderers/canvas/utils/mapCanvasBlendModesToPixi.js");
 
 var _mapCanvasBlendModesToPixi2 = _interopRequireDefault(_mapCanvasBlendModesToPixi);
 
-var _utils = __webpack_require__(/*! ../../utils */ "./node_modules/pixi.js/lib/core/utils/index.js-exposed");
+var _utils = __webpack_require__(/*! ../../utils */ "./node_modules/pixi.js/lib/core/utils/index.js");
 
-var _const = __webpack_require__(/*! ../../const */ "./node_modules/pixi.js/lib/core/const.js-exposed");
+var _const = __webpack_require__(/*! ../../const */ "./node_modules/pixi.js/lib/core/const.js");
 
-var _settings = __webpack_require__(/*! ../../settings */ "./node_modules/pixi.js/lib/core/settings.js-exposed");
+var _settings = __webpack_require__(/*! ../../settings */ "./node_modules/pixi.js/lib/core/settings.js");
 
 var _settings2 = _interopRequireDefault(_settings);
 
@@ -20869,19 +21319,6 @@ _utils.pluginTarget.mixin(CanvasRenderer);
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/core/renderers/canvas/CanvasRenderer.js-exposed":
-/*!**********************************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/renderers/canvas/CanvasRenderer.js-exposed ***!
-  \**********************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./CanvasRenderer.js */ "./node_modules/pixi.js/lib/core/renderers/canvas/CanvasRenderer.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/core/renderers/canvas/utils/CanvasMaskManager.js":
 /*!***********************************************************************************!*\
   !*** ./node_modules/pixi.js/lib/core/renderers/canvas/utils/CanvasMaskManager.js ***!
@@ -20894,7 +21331,7 @@ module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./CanvasRender
 
 exports.__esModule = true;
 
-var _const = __webpack_require__(/*! ../../../const */ "./node_modules/pixi.js/lib/core/const.js-exposed");
+var _const = __webpack_require__(/*! ../../../const */ "./node_modules/pixi.js/lib/core/const.js");
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
@@ -21061,19 +21498,6 @@ exports.default = CanvasMaskManager;
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/core/renderers/canvas/utils/CanvasMaskManager.js-exposed":
-/*!*******************************************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/renderers/canvas/utils/CanvasMaskManager.js-exposed ***!
-  \*******************************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./CanvasMaskManager.js */ "./node_modules/pixi.js/lib/core/renderers/canvas/utils/CanvasMaskManager.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/core/renderers/canvas/utils/CanvasRenderTarget.js":
 /*!************************************************************************************!*\
   !*** ./node_modules/pixi.js/lib/core/renderers/canvas/utils/CanvasRenderTarget.js ***!
@@ -21088,7 +21512,7 @@ exports.__esModule = true;
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _settings = __webpack_require__(/*! ../../../settings */ "./node_modules/pixi.js/lib/core/settings.js-exposed");
+var _settings = __webpack_require__(/*! ../../../settings */ "./node_modules/pixi.js/lib/core/settings.js");
 
 var _settings2 = _interopRequireDefault(_settings);
 
@@ -21208,19 +21632,6 @@ exports.default = CanvasRenderTarget;
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/core/renderers/canvas/utils/CanvasRenderTarget.js-exposed":
-/*!********************************************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/renderers/canvas/utils/CanvasRenderTarget.js-exposed ***!
-  \********************************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./CanvasRenderTarget.js */ "./node_modules/pixi.js/lib/core/renderers/canvas/utils/CanvasRenderTarget.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/core/renderers/canvas/utils/canUseNewCanvasBlendModes.js":
 /*!*******************************************************************************************!*\
   !*** ./node_modules/pixi.js/lib/core/renderers/canvas/utils/canUseNewCanvasBlendModes.js ***!
@@ -21292,19 +21703,6 @@ function canUseNewCanvasBlendModes() {
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/core/renderers/canvas/utils/canUseNewCanvasBlendModes.js-exposed":
-/*!***************************************************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/renderers/canvas/utils/canUseNewCanvasBlendModes.js-exposed ***!
-  \***************************************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./canUseNewCanvasBlendModes.js */ "./node_modules/pixi.js/lib/core/renderers/canvas/utils/canUseNewCanvasBlendModes.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/core/renderers/canvas/utils/mapCanvasBlendModesToPixi.js":
 /*!*******************************************************************************************!*\
   !*** ./node_modules/pixi.js/lib/core/renderers/canvas/utils/mapCanvasBlendModesToPixi.js ***!
@@ -21318,9 +21716,9 @@ module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./canUseNewCan
 exports.__esModule = true;
 exports.default = mapCanvasBlendModesToPixi;
 
-var _const = __webpack_require__(/*! ../../../const */ "./node_modules/pixi.js/lib/core/const.js-exposed");
+var _const = __webpack_require__(/*! ../../../const */ "./node_modules/pixi.js/lib/core/const.js");
 
-var _canUseNewCanvasBlendModes = __webpack_require__(/*! ./canUseNewCanvasBlendModes */ "./node_modules/pixi.js/lib/core/renderers/canvas/utils/canUseNewCanvasBlendModes.js-exposed");
+var _canUseNewCanvasBlendModes = __webpack_require__(/*! ./canUseNewCanvasBlendModes */ "./node_modules/pixi.js/lib/core/renderers/canvas/utils/canUseNewCanvasBlendModes.js");
 
 var _canUseNewCanvasBlendModes2 = _interopRequireDefault(_canUseNewCanvasBlendModes);
 
@@ -21387,19 +21785,6 @@ function mapCanvasBlendModesToPixi() {
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/core/renderers/canvas/utils/mapCanvasBlendModesToPixi.js-exposed":
-/*!***************************************************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/renderers/canvas/utils/mapCanvasBlendModesToPixi.js-exposed ***!
-  \***************************************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./mapCanvasBlendModesToPixi.js */ "./node_modules/pixi.js/lib/core/renderers/canvas/utils/mapCanvasBlendModesToPixi.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/core/renderers/webgl/TextureGarbageCollector.js":
 /*!**********************************************************************************!*\
   !*** ./node_modules/pixi.js/lib/core/renderers/webgl/TextureGarbageCollector.js ***!
@@ -21412,9 +21797,9 @@ module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./mapCanvasBle
 
 exports.__esModule = true;
 
-var _const = __webpack_require__(/*! ../../const */ "./node_modules/pixi.js/lib/core/const.js-exposed");
+var _const = __webpack_require__(/*! ../../const */ "./node_modules/pixi.js/lib/core/const.js");
 
-var _settings = __webpack_require__(/*! ../../settings */ "./node_modules/pixi.js/lib/core/settings.js-exposed");
+var _settings = __webpack_require__(/*! ../../settings */ "./node_modules/pixi.js/lib/core/settings.js");
 
 var _settings2 = _interopRequireDefault(_settings);
 
@@ -21530,19 +21915,6 @@ exports.default = TextureGarbageCollector;
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/core/renderers/webgl/TextureGarbageCollector.js-exposed":
-/*!******************************************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/renderers/webgl/TextureGarbageCollector.js-exposed ***!
-  \******************************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./TextureGarbageCollector.js */ "./node_modules/pixi.js/lib/core/renderers/webgl/TextureGarbageCollector.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/core/renderers/webgl/TextureManager.js":
 /*!*************************************************************************!*\
   !*** ./node_modules/pixi.js/lib/core/renderers/webgl/TextureManager.js ***!
@@ -21557,13 +21929,13 @@ exports.__esModule = true;
 
 var _pixiGlCore = __webpack_require__(/*! pixi-gl-core */ "./node_modules/pixi-gl-core/src/index.js");
 
-var _const = __webpack_require__(/*! ../../const */ "./node_modules/pixi.js/lib/core/const.js-exposed");
+var _const = __webpack_require__(/*! ../../const */ "./node_modules/pixi.js/lib/core/const.js");
 
-var _RenderTarget = __webpack_require__(/*! ./utils/RenderTarget */ "./node_modules/pixi.js/lib/core/renderers/webgl/utils/RenderTarget.js-exposed");
+var _RenderTarget = __webpack_require__(/*! ./utils/RenderTarget */ "./node_modules/pixi.js/lib/core/renderers/webgl/utils/RenderTarget.js");
 
 var _RenderTarget2 = _interopRequireDefault(_RenderTarget);
 
-var _utils = __webpack_require__(/*! ../../utils */ "./node_modules/pixi.js/lib/core/utils/index.js-exposed");
+var _utils = __webpack_require__(/*! ../../utils */ "./node_modules/pixi.js/lib/core/utils/index.js");
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -21809,19 +22181,6 @@ exports.default = TextureManager;
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/core/renderers/webgl/TextureManager.js-exposed":
-/*!*********************************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/renderers/webgl/TextureManager.js-exposed ***!
-  \*********************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./TextureManager.js */ "./node_modules/pixi.js/lib/core/renderers/webgl/TextureManager.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/core/renderers/webgl/WebGLRenderer.js":
 /*!************************************************************************!*\
   !*** ./node_modules/pixi.js/lib/core/renderers/webgl/WebGLRenderer.js ***!
@@ -21834,61 +22193,61 @@ module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./TextureManag
 
 exports.__esModule = true;
 
-var _SystemRenderer2 = __webpack_require__(/*! ../SystemRenderer */ "./node_modules/pixi.js/lib/core/renderers/SystemRenderer.js-exposed");
+var _SystemRenderer2 = __webpack_require__(/*! ../SystemRenderer */ "./node_modules/pixi.js/lib/core/renderers/SystemRenderer.js");
 
 var _SystemRenderer3 = _interopRequireDefault(_SystemRenderer2);
 
-var _MaskManager = __webpack_require__(/*! ./managers/MaskManager */ "./node_modules/pixi.js/lib/core/renderers/webgl/managers/MaskManager.js-exposed");
+var _MaskManager = __webpack_require__(/*! ./managers/MaskManager */ "./node_modules/pixi.js/lib/core/renderers/webgl/managers/MaskManager.js");
 
 var _MaskManager2 = _interopRequireDefault(_MaskManager);
 
-var _StencilManager = __webpack_require__(/*! ./managers/StencilManager */ "./node_modules/pixi.js/lib/core/renderers/webgl/managers/StencilManager.js-exposed");
+var _StencilManager = __webpack_require__(/*! ./managers/StencilManager */ "./node_modules/pixi.js/lib/core/renderers/webgl/managers/StencilManager.js");
 
 var _StencilManager2 = _interopRequireDefault(_StencilManager);
 
-var _FilterManager = __webpack_require__(/*! ./managers/FilterManager */ "./node_modules/pixi.js/lib/core/renderers/webgl/managers/FilterManager.js-exposed");
+var _FilterManager = __webpack_require__(/*! ./managers/FilterManager */ "./node_modules/pixi.js/lib/core/renderers/webgl/managers/FilterManager.js");
 
 var _FilterManager2 = _interopRequireDefault(_FilterManager);
 
-var _RenderTarget = __webpack_require__(/*! ./utils/RenderTarget */ "./node_modules/pixi.js/lib/core/renderers/webgl/utils/RenderTarget.js-exposed");
+var _RenderTarget = __webpack_require__(/*! ./utils/RenderTarget */ "./node_modules/pixi.js/lib/core/renderers/webgl/utils/RenderTarget.js");
 
 var _RenderTarget2 = _interopRequireDefault(_RenderTarget);
 
-var _ObjectRenderer = __webpack_require__(/*! ./utils/ObjectRenderer */ "./node_modules/pixi.js/lib/core/renderers/webgl/utils/ObjectRenderer.js-exposed");
+var _ObjectRenderer = __webpack_require__(/*! ./utils/ObjectRenderer */ "./node_modules/pixi.js/lib/core/renderers/webgl/utils/ObjectRenderer.js");
 
 var _ObjectRenderer2 = _interopRequireDefault(_ObjectRenderer);
 
-var _TextureManager = __webpack_require__(/*! ./TextureManager */ "./node_modules/pixi.js/lib/core/renderers/webgl/TextureManager.js-exposed");
+var _TextureManager = __webpack_require__(/*! ./TextureManager */ "./node_modules/pixi.js/lib/core/renderers/webgl/TextureManager.js");
 
 var _TextureManager2 = _interopRequireDefault(_TextureManager);
 
-var _BaseTexture = __webpack_require__(/*! ../../textures/BaseTexture */ "./node_modules/pixi.js/lib/core/textures/BaseTexture.js-exposed");
+var _BaseTexture = __webpack_require__(/*! ../../textures/BaseTexture */ "./node_modules/pixi.js/lib/core/textures/BaseTexture.js");
 
 var _BaseTexture2 = _interopRequireDefault(_BaseTexture);
 
-var _TextureGarbageCollector = __webpack_require__(/*! ./TextureGarbageCollector */ "./node_modules/pixi.js/lib/core/renderers/webgl/TextureGarbageCollector.js-exposed");
+var _TextureGarbageCollector = __webpack_require__(/*! ./TextureGarbageCollector */ "./node_modules/pixi.js/lib/core/renderers/webgl/TextureGarbageCollector.js");
 
 var _TextureGarbageCollector2 = _interopRequireDefault(_TextureGarbageCollector);
 
-var _WebGLState = __webpack_require__(/*! ./WebGLState */ "./node_modules/pixi.js/lib/core/renderers/webgl/WebGLState.js-exposed");
+var _WebGLState = __webpack_require__(/*! ./WebGLState */ "./node_modules/pixi.js/lib/core/renderers/webgl/WebGLState.js");
 
 var _WebGLState2 = _interopRequireDefault(_WebGLState);
 
-var _mapWebGLDrawModesToPixi = __webpack_require__(/*! ./utils/mapWebGLDrawModesToPixi */ "./node_modules/pixi.js/lib/core/renderers/webgl/utils/mapWebGLDrawModesToPixi.js-exposed");
+var _mapWebGLDrawModesToPixi = __webpack_require__(/*! ./utils/mapWebGLDrawModesToPixi */ "./node_modules/pixi.js/lib/core/renderers/webgl/utils/mapWebGLDrawModesToPixi.js");
 
 var _mapWebGLDrawModesToPixi2 = _interopRequireDefault(_mapWebGLDrawModesToPixi);
 
-var _validateContext = __webpack_require__(/*! ./utils/validateContext */ "./node_modules/pixi.js/lib/core/renderers/webgl/utils/validateContext.js-exposed");
+var _validateContext = __webpack_require__(/*! ./utils/validateContext */ "./node_modules/pixi.js/lib/core/renderers/webgl/utils/validateContext.js");
 
 var _validateContext2 = _interopRequireDefault(_validateContext);
 
-var _utils = __webpack_require__(/*! ../../utils */ "./node_modules/pixi.js/lib/core/utils/index.js-exposed");
+var _utils = __webpack_require__(/*! ../../utils */ "./node_modules/pixi.js/lib/core/utils/index.js");
 
 var _pixiGlCore = __webpack_require__(/*! pixi-gl-core */ "./node_modules/pixi-gl-core/src/index.js");
 
 var _pixiGlCore2 = _interopRequireDefault(_pixiGlCore);
 
-var _const = __webpack_require__(/*! ../../const */ "./node_modules/pixi.js/lib/core/const.js-exposed");
+var _const = __webpack_require__(/*! ../../const */ "./node_modules/pixi.js/lib/core/const.js");
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -22649,19 +23008,6 @@ _utils.pluginTarget.mixin(WebGLRenderer);
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/core/renderers/webgl/WebGLRenderer.js-exposed":
-/*!********************************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/renderers/webgl/WebGLRenderer.js-exposed ***!
-  \********************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./WebGLRenderer.js */ "./node_modules/pixi.js/lib/core/renderers/webgl/WebGLRenderer.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/core/renderers/webgl/WebGLState.js":
 /*!*********************************************************************!*\
   !*** ./node_modules/pixi.js/lib/core/renderers/webgl/WebGLState.js ***!
@@ -22674,7 +23020,7 @@ module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./WebGLRendere
 
 exports.__esModule = true;
 
-var _mapWebGLBlendModesToPixi = __webpack_require__(/*! ./utils/mapWebGLBlendModesToPixi */ "./node_modules/pixi.js/lib/core/renderers/webgl/utils/mapWebGLBlendModesToPixi.js-exposed");
+var _mapWebGLBlendModesToPixi = __webpack_require__(/*! ./utils/mapWebGLBlendModesToPixi */ "./node_modules/pixi.js/lib/core/renderers/webgl/utils/mapWebGLBlendModesToPixi.js");
 
 var _mapWebGLBlendModesToPixi2 = _interopRequireDefault(_mapWebGLBlendModesToPixi);
 
@@ -22952,19 +23298,6 @@ exports.default = WebGLState;
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/core/renderers/webgl/WebGLState.js-exposed":
-/*!*****************************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/renderers/webgl/WebGLState.js-exposed ***!
-  \*****************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./WebGLState.js */ "./node_modules/pixi.js/lib/core/renderers/webgl/WebGLState.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/core/renderers/webgl/filters/Filter.js":
 /*!*************************************************************************!*\
   !*** ./node_modules/pixi.js/lib/core/renderers/webgl/filters/Filter.js ***!
@@ -22979,15 +23312,15 @@ exports.__esModule = true;
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _extractUniformsFromSrc = __webpack_require__(/*! ./extractUniformsFromSrc */ "./node_modules/pixi.js/lib/core/renderers/webgl/filters/extractUniformsFromSrc.js-exposed");
+var _extractUniformsFromSrc = __webpack_require__(/*! ./extractUniformsFromSrc */ "./node_modules/pixi.js/lib/core/renderers/webgl/filters/extractUniformsFromSrc.js");
 
 var _extractUniformsFromSrc2 = _interopRequireDefault(_extractUniformsFromSrc);
 
-var _utils = __webpack_require__(/*! ../../../utils */ "./node_modules/pixi.js/lib/core/utils/index.js-exposed");
+var _utils = __webpack_require__(/*! ../../../utils */ "./node_modules/pixi.js/lib/core/utils/index.js");
 
-var _const = __webpack_require__(/*! ../../../const */ "./node_modules/pixi.js/lib/core/const.js-exposed");
+var _const = __webpack_require__(/*! ../../../const */ "./node_modules/pixi.js/lib/core/const.js");
 
-var _settings = __webpack_require__(/*! ../../../settings */ "./node_modules/pixi.js/lib/core/settings.js-exposed");
+var _settings = __webpack_require__(/*! ../../../settings */ "./node_modules/pixi.js/lib/core/settings.js");
 
 var _settings2 = _interopRequireDefault(_settings);
 
@@ -23171,19 +23504,6 @@ exports.default = Filter;
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/core/renderers/webgl/filters/Filter.js-exposed":
-/*!*********************************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/renderers/webgl/filters/Filter.js-exposed ***!
-  \*********************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./Filter.js */ "./node_modules/pixi.js/lib/core/renderers/webgl/filters/Filter.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/core/renderers/webgl/filters/extractUniformsFromSrc.js":
 /*!*****************************************************************************************!*\
   !*** ./node_modules/pixi.js/lib/core/renderers/webgl/filters/extractUniformsFromSrc.js ***!
@@ -23256,19 +23576,6 @@ function extractUniformsFromString(string) {
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/core/renderers/webgl/filters/extractUniformsFromSrc.js-exposed":
-/*!*************************************************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/renderers/webgl/filters/extractUniformsFromSrc.js-exposed ***!
-  \*************************************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./extractUniformsFromSrc.js */ "./node_modules/pixi.js/lib/core/renderers/webgl/filters/extractUniformsFromSrc.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/core/renderers/webgl/filters/filterTransforms.js":
 /*!***********************************************************************************!*\
   !*** ./node_modules/pixi.js/lib/core/renderers/webgl/filters/filterTransforms.js ***!
@@ -23284,7 +23591,7 @@ exports.calculateScreenSpaceMatrix = calculateScreenSpaceMatrix;
 exports.calculateNormalizedScreenSpaceMatrix = calculateNormalizedScreenSpaceMatrix;
 exports.calculateSpriteMatrix = calculateSpriteMatrix;
 
-var _math = __webpack_require__(/*! ../../../math */ "./node_modules/pixi.js/lib/core/math/index.js-exposed");
+var _math = __webpack_require__(/*! ../../../math */ "./node_modules/pixi.js/lib/core/math/index.js");
 
 /**
  * Calculates the mapped matrix
@@ -23339,19 +23646,6 @@ function calculateSpriteMatrix(outputMatrix, filterArea, textureSize, sprite) {
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/core/renderers/webgl/filters/filterTransforms.js-exposed":
-/*!*******************************************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/renderers/webgl/filters/filterTransforms.js-exposed ***!
-  \*******************************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./filterTransforms.js */ "./node_modules/pixi.js/lib/core/renderers/webgl/filters/filterTransforms.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/core/renderers/webgl/filters/spriteMask/SpriteMaskFilter.js":
 /*!**********************************************************************************************!*\
   !*** ./node_modules/pixi.js/lib/core/renderers/webgl/filters/spriteMask/SpriteMaskFilter.js ***!
@@ -23364,15 +23658,15 @@ module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./filterTransf
 
 exports.__esModule = true;
 
-var _Filter2 = __webpack_require__(/*! ../Filter */ "./node_modules/pixi.js/lib/core/renderers/webgl/filters/Filter.js-exposed");
+var _Filter2 = __webpack_require__(/*! ../Filter */ "./node_modules/pixi.js/lib/core/renderers/webgl/filters/Filter.js");
 
 var _Filter3 = _interopRequireDefault(_Filter2);
 
-var _math = __webpack_require__(/*! ../../../../math */ "./node_modules/pixi.js/lib/core/math/index.js-exposed");
+var _math = __webpack_require__(/*! ../../../../math */ "./node_modules/pixi.js/lib/core/math/index.js");
 
 var _path = __webpack_require__(/*! path */ "./node_modules/path-browserify/index.js");
 
-var _TextureMatrix = __webpack_require__(/*! ../../../../textures/TextureMatrix */ "./node_modules/pixi.js/lib/core/textures/TextureMatrix.js-exposed");
+var _TextureMatrix = __webpack_require__(/*! ../../../../textures/TextureMatrix */ "./node_modules/pixi.js/lib/core/textures/TextureMatrix.js");
 
 var _TextureMatrix2 = _interopRequireDefault(_TextureMatrix);
 
@@ -23450,19 +23744,6 @@ exports.default = SpriteMaskFilter;
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/core/renderers/webgl/filters/spriteMask/SpriteMaskFilter.js-exposed":
-/*!******************************************************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/renderers/webgl/filters/spriteMask/SpriteMaskFilter.js-exposed ***!
-  \******************************************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./SpriteMaskFilter.js */ "./node_modules/pixi.js/lib/core/renderers/webgl/filters/spriteMask/SpriteMaskFilter.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/core/renderers/webgl/managers/FilterManager.js":
 /*!*********************************************************************************!*\
   !*** ./node_modules/pixi.js/lib/core/renderers/webgl/managers/FilterManager.js ***!
@@ -23475,25 +23756,25 @@ module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./SpriteMaskFi
 
 exports.__esModule = true;
 
-var _WebGLManager2 = __webpack_require__(/*! ./WebGLManager */ "./node_modules/pixi.js/lib/core/renderers/webgl/managers/WebGLManager.js-exposed");
+var _WebGLManager2 = __webpack_require__(/*! ./WebGLManager */ "./node_modules/pixi.js/lib/core/renderers/webgl/managers/WebGLManager.js");
 
 var _WebGLManager3 = _interopRequireDefault(_WebGLManager2);
 
-var _RenderTarget = __webpack_require__(/*! ../utils/RenderTarget */ "./node_modules/pixi.js/lib/core/renderers/webgl/utils/RenderTarget.js-exposed");
+var _RenderTarget = __webpack_require__(/*! ../utils/RenderTarget */ "./node_modules/pixi.js/lib/core/renderers/webgl/utils/RenderTarget.js");
 
 var _RenderTarget2 = _interopRequireDefault(_RenderTarget);
 
-var _Quad = __webpack_require__(/*! ../utils/Quad */ "./node_modules/pixi.js/lib/core/renderers/webgl/utils/Quad.js-exposed");
+var _Quad = __webpack_require__(/*! ../utils/Quad */ "./node_modules/pixi.js/lib/core/renderers/webgl/utils/Quad.js");
 
 var _Quad2 = _interopRequireDefault(_Quad);
 
-var _math = __webpack_require__(/*! ../../../math */ "./node_modules/pixi.js/lib/core/math/index.js-exposed");
+var _math = __webpack_require__(/*! ../../../math */ "./node_modules/pixi.js/lib/core/math/index.js");
 
-var _Shader = __webpack_require__(/*! ../../../Shader */ "./node_modules/pixi.js/lib/core/Shader.js-exposed");
+var _Shader = __webpack_require__(/*! ../../../Shader */ "./node_modules/pixi.js/lib/core/Shader.js");
 
 var _Shader2 = _interopRequireDefault(_Shader);
 
-var _filterTransforms = __webpack_require__(/*! ../filters/filterTransforms */ "./node_modules/pixi.js/lib/core/renderers/webgl/filters/filterTransforms.js-exposed");
+var _filterTransforms = __webpack_require__(/*! ../filters/filterTransforms */ "./node_modules/pixi.js/lib/core/renderers/webgl/filters/filterTransforms.js");
 
 var filterTransforms = _interopRequireWildcard(_filterTransforms);
 
@@ -24123,19 +24404,6 @@ exports.default = FilterManager;
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/core/renderers/webgl/managers/FilterManager.js-exposed":
-/*!*****************************************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/renderers/webgl/managers/FilterManager.js-exposed ***!
-  \*****************************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./FilterManager.js */ "./node_modules/pixi.js/lib/core/renderers/webgl/managers/FilterManager.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/core/renderers/webgl/managers/MaskManager.js":
 /*!*******************************************************************************!*\
   !*** ./node_modules/pixi.js/lib/core/renderers/webgl/managers/MaskManager.js ***!
@@ -24148,11 +24416,11 @@ module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./FilterManage
 
 exports.__esModule = true;
 
-var _WebGLManager2 = __webpack_require__(/*! ./WebGLManager */ "./node_modules/pixi.js/lib/core/renderers/webgl/managers/WebGLManager.js-exposed");
+var _WebGLManager2 = __webpack_require__(/*! ./WebGLManager */ "./node_modules/pixi.js/lib/core/renderers/webgl/managers/WebGLManager.js");
 
 var _WebGLManager3 = _interopRequireDefault(_WebGLManager2);
 
-var _SpriteMaskFilter = __webpack_require__(/*! ../filters/spriteMask/SpriteMaskFilter */ "./node_modules/pixi.js/lib/core/renderers/webgl/filters/spriteMask/SpriteMaskFilter.js-exposed");
+var _SpriteMaskFilter = __webpack_require__(/*! ../filters/spriteMask/SpriteMaskFilter */ "./node_modules/pixi.js/lib/core/renderers/webgl/filters/spriteMask/SpriteMaskFilter.js");
 
 var _SpriteMaskFilter2 = _interopRequireDefault(_SpriteMaskFilter);
 
@@ -24356,19 +24624,6 @@ exports.default = MaskManager;
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/core/renderers/webgl/managers/MaskManager.js-exposed":
-/*!***************************************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/renderers/webgl/managers/MaskManager.js-exposed ***!
-  \***************************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./MaskManager.js */ "./node_modules/pixi.js/lib/core/renderers/webgl/managers/MaskManager.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/core/renderers/webgl/managers/StencilManager.js":
 /*!**********************************************************************************!*\
   !*** ./node_modules/pixi.js/lib/core/renderers/webgl/managers/StencilManager.js ***!
@@ -24381,7 +24636,7 @@ module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./MaskManager.
 
 exports.__esModule = true;
 
-var _WebGLManager2 = __webpack_require__(/*! ./WebGLManager */ "./node_modules/pixi.js/lib/core/renderers/webgl/managers/WebGLManager.js-exposed");
+var _WebGLManager2 = __webpack_require__(/*! ./WebGLManager */ "./node_modules/pixi.js/lib/core/renderers/webgl/managers/WebGLManager.js");
 
 var _WebGLManager3 = _interopRequireDefault(_WebGLManager2);
 
@@ -24532,19 +24787,6 @@ exports.default = StencilManager;
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/core/renderers/webgl/managers/StencilManager.js-exposed":
-/*!******************************************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/renderers/webgl/managers/StencilManager.js-exposed ***!
-  \******************************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./StencilManager.js */ "./node_modules/pixi.js/lib/core/renderers/webgl/managers/StencilManager.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/core/renderers/webgl/managers/WebGLManager.js":
 /*!********************************************************************************!*\
   !*** ./node_modules/pixi.js/lib/core/renderers/webgl/managers/WebGLManager.js ***!
@@ -24610,19 +24852,6 @@ exports.default = WebGLManager;
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/core/renderers/webgl/managers/WebGLManager.js-exposed":
-/*!****************************************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/renderers/webgl/managers/WebGLManager.js-exposed ***!
-  \****************************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./WebGLManager.js */ "./node_modules/pixi.js/lib/core/renderers/webgl/managers/WebGLManager.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/core/renderers/webgl/utils/ObjectRenderer.js":
 /*!*******************************************************************************!*\
   !*** ./node_modules/pixi.js/lib/core/renderers/webgl/utils/ObjectRenderer.js ***!
@@ -24635,7 +24864,7 @@ module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./WebGLManager
 
 exports.__esModule = true;
 
-var _WebGLManager2 = __webpack_require__(/*! ../managers/WebGLManager */ "./node_modules/pixi.js/lib/core/renderers/webgl/managers/WebGLManager.js-exposed");
+var _WebGLManager2 = __webpack_require__(/*! ../managers/WebGLManager */ "./node_modules/pixi.js/lib/core/renderers/webgl/managers/WebGLManager.js");
 
 var _WebGLManager3 = _interopRequireDefault(_WebGLManager2);
 
@@ -24711,19 +24940,6 @@ exports.default = ObjectRenderer;
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/core/renderers/webgl/utils/ObjectRenderer.js-exposed":
-/*!***************************************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/renderers/webgl/utils/ObjectRenderer.js-exposed ***!
-  \***************************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./ObjectRenderer.js */ "./node_modules/pixi.js/lib/core/renderers/webgl/utils/ObjectRenderer.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/core/renderers/webgl/utils/Quad.js":
 /*!*********************************************************************!*\
   !*** ./node_modules/pixi.js/lib/core/renderers/webgl/utils/Quad.js ***!
@@ -24740,7 +24956,7 @@ var _pixiGlCore = __webpack_require__(/*! pixi-gl-core */ "./node_modules/pixi-g
 
 var _pixiGlCore2 = _interopRequireDefault(_pixiGlCore);
 
-var _createIndicesForQuads = __webpack_require__(/*! ../../../utils/createIndicesForQuads */ "./node_modules/pixi.js/lib/core/utils/createIndicesForQuads.js-exposed");
+var _createIndicesForQuads = __webpack_require__(/*! ../../../utils/createIndicesForQuads */ "./node_modules/pixi.js/lib/core/utils/createIndicesForQuads.js");
 
 var _createIndicesForQuads2 = _interopRequireDefault(_createIndicesForQuads);
 
@@ -24915,19 +25131,6 @@ exports.default = Quad;
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/core/renderers/webgl/utils/Quad.js-exposed":
-/*!*****************************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/renderers/webgl/utils/Quad.js-exposed ***!
-  \*****************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./Quad.js */ "./node_modules/pixi.js/lib/core/renderers/webgl/utils/Quad.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/core/renderers/webgl/utils/RenderTarget.js":
 /*!*****************************************************************************!*\
   !*** ./node_modules/pixi.js/lib/core/renderers/webgl/utils/RenderTarget.js ***!
@@ -24940,11 +25143,11 @@ module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./Quad.js */ "
 
 exports.__esModule = true;
 
-var _math = __webpack_require__(/*! ../../../math */ "./node_modules/pixi.js/lib/core/math/index.js-exposed");
+var _math = __webpack_require__(/*! ../../../math */ "./node_modules/pixi.js/lib/core/math/index.js");
 
-var _const = __webpack_require__(/*! ../../../const */ "./node_modules/pixi.js/lib/core/const.js-exposed");
+var _const = __webpack_require__(/*! ../../../const */ "./node_modules/pixi.js/lib/core/const.js");
 
-var _settings = __webpack_require__(/*! ../../../settings */ "./node_modules/pixi.js/lib/core/settings.js-exposed");
+var _settings = __webpack_require__(/*! ../../../settings */ "./node_modules/pixi.js/lib/core/settings.js");
 
 var _settings2 = _interopRequireDefault(_settings);
 
@@ -25272,19 +25475,6 @@ exports.default = RenderTarget;
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/core/renderers/webgl/utils/RenderTarget.js-exposed":
-/*!*************************************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/renderers/webgl/utils/RenderTarget.js-exposed ***!
-  \*************************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./RenderTarget.js */ "./node_modules/pixi.js/lib/core/renderers/webgl/utils/RenderTarget.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/core/renderers/webgl/utils/checkMaxIfStatmentsInShader.js":
 /*!********************************************************************************************!*\
   !*** ./node_modules/pixi.js/lib/core/renderers/webgl/utils/checkMaxIfStatmentsInShader.js ***!
@@ -25370,19 +25560,6 @@ function generateIfTestSrc(maxIfs) {
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/core/renderers/webgl/utils/checkMaxIfStatmentsInShader.js-exposed":
-/*!****************************************************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/renderers/webgl/utils/checkMaxIfStatmentsInShader.js-exposed ***!
-  \****************************************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./checkMaxIfStatmentsInShader.js */ "./node_modules/pixi.js/lib/core/renderers/webgl/utils/checkMaxIfStatmentsInShader.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/core/renderers/webgl/utils/mapWebGLBlendModesToPixi.js":
 /*!*****************************************************************************************!*\
   !*** ./node_modules/pixi.js/lib/core/renderers/webgl/utils/mapWebGLBlendModesToPixi.js ***!
@@ -25396,7 +25573,7 @@ module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./checkMaxIfSt
 exports.__esModule = true;
 exports.default = mapWebGLBlendModesToPixi;
 
-var _const = __webpack_require__(/*! ../../../const */ "./node_modules/pixi.js/lib/core/const.js-exposed");
+var _const = __webpack_require__(/*! ../../../const */ "./node_modules/pixi.js/lib/core/const.js");
 
 /**
  * Maps gl blend combinations to WebGL.
@@ -25442,19 +25619,6 @@ function mapWebGLBlendModesToPixi(gl) {
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/core/renderers/webgl/utils/mapWebGLBlendModesToPixi.js-exposed":
-/*!*************************************************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/renderers/webgl/utils/mapWebGLBlendModesToPixi.js-exposed ***!
-  \*************************************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./mapWebGLBlendModesToPixi.js */ "./node_modules/pixi.js/lib/core/renderers/webgl/utils/mapWebGLBlendModesToPixi.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/core/renderers/webgl/utils/mapWebGLDrawModesToPixi.js":
 /*!****************************************************************************************!*\
   !*** ./node_modules/pixi.js/lib/core/renderers/webgl/utils/mapWebGLDrawModesToPixi.js ***!
@@ -25468,7 +25632,7 @@ module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./mapWebGLBlen
 exports.__esModule = true;
 exports.default = mapWebGLDrawModesToPixi;
 
-var _const = __webpack_require__(/*! ../../../const */ "./node_modules/pixi.js/lib/core/const.js-exposed");
+var _const = __webpack_require__(/*! ../../../const */ "./node_modules/pixi.js/lib/core/const.js");
 
 /**
  * Generic Mask Stack data structure.
@@ -25494,19 +25658,6 @@ function mapWebGLDrawModesToPixi(gl) {
   return object;
 }
 //# sourceMappingURL=mapWebGLDrawModesToPixi.js.map
-
-/***/ }),
-
-/***/ "./node_modules/pixi.js/lib/core/renderers/webgl/utils/mapWebGLDrawModesToPixi.js-exposed":
-/*!************************************************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/renderers/webgl/utils/mapWebGLDrawModesToPixi.js-exposed ***!
-  \************************************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./mapWebGLDrawModesToPixi.js */ "./node_modules/pixi.js/lib/core/renderers/webgl/utils/mapWebGLDrawModesToPixi.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
 
 /***/ }),
 
@@ -25536,19 +25687,6 @@ function validateContext(gl) {
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/core/renderers/webgl/utils/validateContext.js-exposed":
-/*!****************************************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/renderers/webgl/utils/validateContext.js-exposed ***!
-  \****************************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./validateContext.js */ "./node_modules/pixi.js/lib/core/renderers/webgl/utils/validateContext.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/core/settings.js":
 /*!***************************************************!*\
   !*** ./node_modules/pixi.js/lib/core/settings.js ***!
@@ -25561,11 +25699,11 @@ module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./validateCont
 
 exports.__esModule = true;
 
-var _maxRecommendedTextures = __webpack_require__(/*! ./utils/maxRecommendedTextures */ "./node_modules/pixi.js/lib/core/utils/maxRecommendedTextures.js-exposed");
+var _maxRecommendedTextures = __webpack_require__(/*! ./utils/maxRecommendedTextures */ "./node_modules/pixi.js/lib/core/utils/maxRecommendedTextures.js");
 
 var _maxRecommendedTextures2 = _interopRequireDefault(_maxRecommendedTextures);
 
-var _canUploadSameBuffer = __webpack_require__(/*! ./utils/canUploadSameBuffer */ "./node_modules/pixi.js/lib/core/utils/canUploadSameBuffer.js-exposed");
+var _canUploadSameBuffer = __webpack_require__(/*! ./utils/canUploadSameBuffer */ "./node_modules/pixi.js/lib/core/utils/canUploadSameBuffer.js");
 
 var _canUploadSameBuffer2 = _interopRequireDefault(_canUploadSameBuffer);
 
@@ -25804,19 +25942,6 @@ exports.default = {
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/core/settings.js-exposed":
-/*!***********************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/settings.js-exposed ***!
-  \***********************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./settings.js */ "./node_modules/pixi.js/lib/core/settings.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/core/sprites/Sprite.js":
 /*!*********************************************************!*\
   !*** ./node_modules/pixi.js/lib/core/sprites/Sprite.js ***!
@@ -25831,17 +25956,17 @@ exports.__esModule = true;
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _math = __webpack_require__(/*! ../math */ "./node_modules/pixi.js/lib/core/math/index.js-exposed");
+var _math = __webpack_require__(/*! ../math */ "./node_modules/pixi.js/lib/core/math/index.js");
 
-var _utils = __webpack_require__(/*! ../utils */ "./node_modules/pixi.js/lib/core/utils/index.js-exposed");
+var _utils = __webpack_require__(/*! ../utils */ "./node_modules/pixi.js/lib/core/utils/index.js");
 
-var _const = __webpack_require__(/*! ../const */ "./node_modules/pixi.js/lib/core/const.js-exposed");
+var _const = __webpack_require__(/*! ../const */ "./node_modules/pixi.js/lib/core/const.js");
 
-var _Texture = __webpack_require__(/*! ../textures/Texture */ "./node_modules/pixi.js/lib/core/textures/Texture.js-exposed");
+var _Texture = __webpack_require__(/*! ../textures/Texture */ "./node_modules/pixi.js/lib/core/textures/Texture.js");
 
 var _Texture2 = _interopRequireDefault(_Texture);
 
-var _Container2 = __webpack_require__(/*! ../display/Container */ "./node_modules/pixi.js/lib/core/display/Container.js-exposed");
+var _Container2 = __webpack_require__(/*! ../display/Container */ "./node_modules/pixi.js/lib/core/display/Container.js");
 
 var _Container3 = _interopRequireDefault(_Container2);
 
@@ -26468,19 +26593,6 @@ exports.default = Sprite;
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/core/sprites/Sprite.js-exposed":
-/*!*****************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/sprites/Sprite.js-exposed ***!
-  \*****************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./Sprite.js */ "./node_modules/pixi.js/lib/core/sprites/Sprite.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/core/sprites/canvas/CanvasSpriteRenderer.js":
 /*!******************************************************************************!*\
   !*** ./node_modules/pixi.js/lib/core/sprites/canvas/CanvasSpriteRenderer.js ***!
@@ -26493,15 +26605,15 @@ module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./Sprite.js */
 
 exports.__esModule = true;
 
-var _CanvasRenderer = __webpack_require__(/*! ../../renderers/canvas/CanvasRenderer */ "./node_modules/pixi.js/lib/core/renderers/canvas/CanvasRenderer.js-exposed");
+var _CanvasRenderer = __webpack_require__(/*! ../../renderers/canvas/CanvasRenderer */ "./node_modules/pixi.js/lib/core/renderers/canvas/CanvasRenderer.js");
 
 var _CanvasRenderer2 = _interopRequireDefault(_CanvasRenderer);
 
-var _const = __webpack_require__(/*! ../../const */ "./node_modules/pixi.js/lib/core/const.js-exposed");
+var _const = __webpack_require__(/*! ../../const */ "./node_modules/pixi.js/lib/core/const.js");
 
-var _math = __webpack_require__(/*! ../../math */ "./node_modules/pixi.js/lib/core/math/index.js-exposed");
+var _math = __webpack_require__(/*! ../../math */ "./node_modules/pixi.js/lib/core/math/index.js");
 
-var _CanvasTinter = __webpack_require__(/*! ./CanvasTinter */ "./node_modules/pixi.js/lib/core/sprites/canvas/CanvasTinter.js-exposed");
+var _CanvasTinter = __webpack_require__(/*! ./CanvasTinter */ "./node_modules/pixi.js/lib/core/sprites/canvas/CanvasTinter.js");
 
 var _CanvasTinter2 = _interopRequireDefault(_CanvasTinter);
 
@@ -26644,19 +26756,6 @@ _CanvasRenderer2.default.registerPlugin('sprite', CanvasSpriteRenderer);
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/core/sprites/canvas/CanvasSpriteRenderer.js-exposed":
-/*!**************************************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/sprites/canvas/CanvasSpriteRenderer.js-exposed ***!
-  \**************************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./CanvasSpriteRenderer.js */ "./node_modules/pixi.js/lib/core/sprites/canvas/CanvasSpriteRenderer.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/core/sprites/canvas/CanvasTinter.js":
 /*!**********************************************************************!*\
   !*** ./node_modules/pixi.js/lib/core/sprites/canvas/CanvasTinter.js ***!
@@ -26669,9 +26768,9 @@ module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./CanvasSprite
 
 exports.__esModule = true;
 
-var _utils = __webpack_require__(/*! ../../utils */ "./node_modules/pixi.js/lib/core/utils/index.js-exposed");
+var _utils = __webpack_require__(/*! ../../utils */ "./node_modules/pixi.js/lib/core/utils/index.js");
 
-var _canUseNewCanvasBlendModes = __webpack_require__(/*! ../../renderers/canvas/utils/canUseNewCanvasBlendModes */ "./node_modules/pixi.js/lib/core/renderers/canvas/utils/canUseNewCanvasBlendModes.js-exposed");
+var _canUseNewCanvasBlendModes = __webpack_require__(/*! ../../renderers/canvas/utils/canUseNewCanvasBlendModes */ "./node_modules/pixi.js/lib/core/renderers/canvas/utils/canUseNewCanvasBlendModes.js");
 
 var _canUseNewCanvasBlendModes2 = _interopRequireDefault(_canUseNewCanvasBlendModes);
 
@@ -26918,19 +27017,6 @@ exports.default = CanvasTinter;
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/core/sprites/canvas/CanvasTinter.js-exposed":
-/*!******************************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/sprites/canvas/CanvasTinter.js-exposed ***!
-  \******************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./CanvasTinter.js */ "./node_modules/pixi.js/lib/core/sprites/canvas/CanvasTinter.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/core/sprites/webgl/BatchBuffer.js":
 /*!********************************************************************!*\
   !*** ./node_modules/pixi.js/lib/core/sprites/webgl/BatchBuffer.js ***!
@@ -26994,19 +27080,6 @@ exports.default = Buffer;
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/core/sprites/webgl/BatchBuffer.js-exposed":
-/*!****************************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/sprites/webgl/BatchBuffer.js-exposed ***!
-  \****************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./BatchBuffer.js */ "./node_modules/pixi.js/lib/core/sprites/webgl/BatchBuffer.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/core/sprites/webgl/SpriteRenderer.js":
 /*!***********************************************************************!*\
   !*** ./node_modules/pixi.js/lib/core/sprites/webgl/SpriteRenderer.js ***!
@@ -27019,35 +27092,35 @@ module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./BatchBuffer.
 
 exports.__esModule = true;
 
-var _ObjectRenderer2 = __webpack_require__(/*! ../../renderers/webgl/utils/ObjectRenderer */ "./node_modules/pixi.js/lib/core/renderers/webgl/utils/ObjectRenderer.js-exposed");
+var _ObjectRenderer2 = __webpack_require__(/*! ../../renderers/webgl/utils/ObjectRenderer */ "./node_modules/pixi.js/lib/core/renderers/webgl/utils/ObjectRenderer.js");
 
 var _ObjectRenderer3 = _interopRequireDefault(_ObjectRenderer2);
 
-var _WebGLRenderer = __webpack_require__(/*! ../../renderers/webgl/WebGLRenderer */ "./node_modules/pixi.js/lib/core/renderers/webgl/WebGLRenderer.js-exposed");
+var _WebGLRenderer = __webpack_require__(/*! ../../renderers/webgl/WebGLRenderer */ "./node_modules/pixi.js/lib/core/renderers/webgl/WebGLRenderer.js");
 
 var _WebGLRenderer2 = _interopRequireDefault(_WebGLRenderer);
 
-var _createIndicesForQuads = __webpack_require__(/*! ../../utils/createIndicesForQuads */ "./node_modules/pixi.js/lib/core/utils/createIndicesForQuads.js-exposed");
+var _createIndicesForQuads = __webpack_require__(/*! ../../utils/createIndicesForQuads */ "./node_modules/pixi.js/lib/core/utils/createIndicesForQuads.js");
 
 var _createIndicesForQuads2 = _interopRequireDefault(_createIndicesForQuads);
 
-var _generateMultiTextureShader = __webpack_require__(/*! ./generateMultiTextureShader */ "./node_modules/pixi.js/lib/core/sprites/webgl/generateMultiTextureShader.js-exposed");
+var _generateMultiTextureShader = __webpack_require__(/*! ./generateMultiTextureShader */ "./node_modules/pixi.js/lib/core/sprites/webgl/generateMultiTextureShader.js");
 
 var _generateMultiTextureShader2 = _interopRequireDefault(_generateMultiTextureShader);
 
-var _checkMaxIfStatmentsInShader = __webpack_require__(/*! ../../renderers/webgl/utils/checkMaxIfStatmentsInShader */ "./node_modules/pixi.js/lib/core/renderers/webgl/utils/checkMaxIfStatmentsInShader.js-exposed");
+var _checkMaxIfStatmentsInShader = __webpack_require__(/*! ../../renderers/webgl/utils/checkMaxIfStatmentsInShader */ "./node_modules/pixi.js/lib/core/renderers/webgl/utils/checkMaxIfStatmentsInShader.js");
 
 var _checkMaxIfStatmentsInShader2 = _interopRequireDefault(_checkMaxIfStatmentsInShader);
 
-var _BatchBuffer = __webpack_require__(/*! ./BatchBuffer */ "./node_modules/pixi.js/lib/core/sprites/webgl/BatchBuffer.js-exposed");
+var _BatchBuffer = __webpack_require__(/*! ./BatchBuffer */ "./node_modules/pixi.js/lib/core/sprites/webgl/BatchBuffer.js");
 
 var _BatchBuffer2 = _interopRequireDefault(_BatchBuffer);
 
-var _settings = __webpack_require__(/*! ../../settings */ "./node_modules/pixi.js/lib/core/settings.js-exposed");
+var _settings = __webpack_require__(/*! ../../settings */ "./node_modules/pixi.js/lib/core/settings.js");
 
 var _settings2 = _interopRequireDefault(_settings);
 
-var _utils = __webpack_require__(/*! ../../utils */ "./node_modules/pixi.js/lib/core/utils/index.js-exposed");
+var _utils = __webpack_require__(/*! ../../utils */ "./node_modules/pixi.js/lib/core/utils/index.js");
 
 var _pixiGlCore = __webpack_require__(/*! pixi-gl-core */ "./node_modules/pixi-gl-core/src/index.js");
 
@@ -27570,19 +27643,6 @@ _WebGLRenderer2.default.registerPlugin('sprite', SpriteRenderer);
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/core/sprites/webgl/SpriteRenderer.js-exposed":
-/*!*******************************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/sprites/webgl/SpriteRenderer.js-exposed ***!
-  \*******************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./SpriteRenderer.js */ "./node_modules/pixi.js/lib/core/sprites/webgl/SpriteRenderer.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/core/sprites/webgl/generateMultiTextureShader.js":
 /*!***********************************************************************************!*\
   !*** ./node_modules/pixi.js/lib/core/sprites/webgl/generateMultiTextureShader.js ***!
@@ -27596,7 +27656,7 @@ module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./SpriteRender
 exports.__esModule = true;
 exports.default = generateMultiTextureShader;
 
-var _Shader = __webpack_require__(/*! ../../Shader */ "./node_modules/pixi.js/lib/core/Shader.js-exposed");
+var _Shader = __webpack_require__(/*! ../../Shader */ "./node_modules/pixi.js/lib/core/Shader.js");
 
 var _Shader2 = _interopRequireDefault(_Shader);
 
@@ -27656,19 +27716,6 @@ function generateSampleSrc(maxTextures) {
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/core/sprites/webgl/generateMultiTextureShader.js-exposed":
-/*!*******************************************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/sprites/webgl/generateMultiTextureShader.js-exposed ***!
-  \*******************************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./generateMultiTextureShader.js */ "./node_modules/pixi.js/lib/core/sprites/webgl/generateMultiTextureShader.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/core/text/Text.js":
 /*!****************************************************!*\
   !*** ./node_modules/pixi.js/lib/core/text/Text.js ***!
@@ -27683,33 +27730,33 @@ exports.__esModule = true;
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _Sprite2 = __webpack_require__(/*! ../sprites/Sprite */ "./node_modules/pixi.js/lib/core/sprites/Sprite.js-exposed");
+var _Sprite2 = __webpack_require__(/*! ../sprites/Sprite */ "./node_modules/pixi.js/lib/core/sprites/Sprite.js");
 
 var _Sprite3 = _interopRequireDefault(_Sprite2);
 
-var _Texture = __webpack_require__(/*! ../textures/Texture */ "./node_modules/pixi.js/lib/core/textures/Texture.js-exposed");
+var _Texture = __webpack_require__(/*! ../textures/Texture */ "./node_modules/pixi.js/lib/core/textures/Texture.js");
 
 var _Texture2 = _interopRequireDefault(_Texture);
 
-var _math = __webpack_require__(/*! ../math */ "./node_modules/pixi.js/lib/core/math/index.js-exposed");
+var _math = __webpack_require__(/*! ../math */ "./node_modules/pixi.js/lib/core/math/index.js");
 
-var _utils = __webpack_require__(/*! ../utils */ "./node_modules/pixi.js/lib/core/utils/index.js-exposed");
+var _utils = __webpack_require__(/*! ../utils */ "./node_modules/pixi.js/lib/core/utils/index.js");
 
-var _const = __webpack_require__(/*! ../const */ "./node_modules/pixi.js/lib/core/const.js-exposed");
+var _const = __webpack_require__(/*! ../const */ "./node_modules/pixi.js/lib/core/const.js");
 
-var _settings = __webpack_require__(/*! ../settings */ "./node_modules/pixi.js/lib/core/settings.js-exposed");
+var _settings = __webpack_require__(/*! ../settings */ "./node_modules/pixi.js/lib/core/settings.js");
 
 var _settings2 = _interopRequireDefault(_settings);
 
-var _TextStyle = __webpack_require__(/*! ./TextStyle */ "./node_modules/pixi.js/lib/core/text/TextStyle.js-exposed");
+var _TextStyle = __webpack_require__(/*! ./TextStyle */ "./node_modules/pixi.js/lib/core/text/TextStyle.js");
 
 var _TextStyle2 = _interopRequireDefault(_TextStyle);
 
-var _TextMetrics = __webpack_require__(/*! ./TextMetrics */ "./node_modules/pixi.js/lib/core/text/TextMetrics.js-exposed");
+var _TextMetrics = __webpack_require__(/*! ./TextMetrics */ "./node_modules/pixi.js/lib/core/text/TextMetrics.js");
 
 var _TextMetrics2 = _interopRequireDefault(_TextMetrics);
 
-var _trimCanvas = __webpack_require__(/*! ../utils/trimCanvas */ "./node_modules/pixi.js/lib/core/utils/trimCanvas.js-exposed");
+var _trimCanvas = __webpack_require__(/*! ../utils/trimCanvas */ "./node_modules/pixi.js/lib/core/utils/trimCanvas.js");
 
 var _trimCanvas2 = _interopRequireDefault(_trimCanvas);
 
@@ -28334,19 +28381,6 @@ var Text = function (_Sprite) {
 
 exports.default = Text;
 //# sourceMappingURL=Text.js.map
-
-/***/ }),
-
-/***/ "./node_modules/pixi.js/lib/core/text/Text.js-exposed":
-/*!************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/text/Text.js-exposed ***!
-  \************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./Text.js */ "./node_modules/pixi.js/lib/core/text/Text.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
 
 /***/ }),
 
@@ -29060,19 +29094,6 @@ TextMetrics._breakingSpaces = [0x0009, // character tabulation
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/core/text/TextMetrics.js-exposed":
-/*!*******************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/text/TextMetrics.js-exposed ***!
-  \*******************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./TextMetrics.js */ "./node_modules/pixi.js/lib/core/text/TextMetrics.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/core/text/TextStyle.js":
 /*!*********************************************************!*\
   !*** ./node_modules/pixi.js/lib/core/text/TextStyle.js ***!
@@ -29088,9 +29109,9 @@ exports.__esModule = true;
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }(); // disabling eslint for now, going to rewrite this in v5
 /* eslint-disable */
 
-var _const = __webpack_require__(/*! ../const */ "./node_modules/pixi.js/lib/core/const.js-exposed");
+var _const = __webpack_require__(/*! ../const */ "./node_modules/pixi.js/lib/core/const.js");
 
-var _utils = __webpack_require__(/*! ../utils */ "./node_modules/pixi.js/lib/core/utils/index.js-exposed");
+var _utils = __webpack_require__(/*! ../utils */ "./node_modules/pixi.js/lib/core/utils/index.js");
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
@@ -29917,19 +29938,6 @@ function deepCopyProperties(target, source, propertyObj) {
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/core/text/TextStyle.js-exposed":
-/*!*****************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/text/TextStyle.js-exposed ***!
-  \*****************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./TextStyle.js */ "./node_modules/pixi.js/lib/core/text/TextStyle.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/core/textures/BaseRenderTexture.js":
 /*!*********************************************************************!*\
   !*** ./node_modules/pixi.js/lib/core/textures/BaseRenderTexture.js ***!
@@ -29942,11 +29950,11 @@ module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./TextStyle.js
 
 exports.__esModule = true;
 
-var _BaseTexture2 = __webpack_require__(/*! ./BaseTexture */ "./node_modules/pixi.js/lib/core/textures/BaseTexture.js-exposed");
+var _BaseTexture2 = __webpack_require__(/*! ./BaseTexture */ "./node_modules/pixi.js/lib/core/textures/BaseTexture.js");
 
 var _BaseTexture3 = _interopRequireDefault(_BaseTexture2);
 
-var _settings = __webpack_require__(/*! ../settings */ "./node_modules/pixi.js/lib/core/settings.js-exposed");
+var _settings = __webpack_require__(/*! ../settings */ "./node_modules/pixi.js/lib/core/settings.js");
 
 var _settings2 = _interopRequireDefault(_settings);
 
@@ -30102,19 +30110,6 @@ exports.default = BaseRenderTexture;
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/core/textures/BaseRenderTexture.js-exposed":
-/*!*****************************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/textures/BaseRenderTexture.js-exposed ***!
-  \*****************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./BaseRenderTexture.js */ "./node_modules/pixi.js/lib/core/textures/BaseRenderTexture.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/core/textures/BaseTexture.js":
 /*!***************************************************************!*\
   !*** ./node_modules/pixi.js/lib/core/textures/BaseTexture.js ***!
@@ -30127,17 +30122,17 @@ module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./BaseRenderTe
 
 exports.__esModule = true;
 
-var _utils = __webpack_require__(/*! ../utils */ "./node_modules/pixi.js/lib/core/utils/index.js-exposed");
+var _utils = __webpack_require__(/*! ../utils */ "./node_modules/pixi.js/lib/core/utils/index.js");
 
-var _settings = __webpack_require__(/*! ../settings */ "./node_modules/pixi.js/lib/core/settings.js-exposed");
+var _settings = __webpack_require__(/*! ../settings */ "./node_modules/pixi.js/lib/core/settings.js");
 
 var _settings2 = _interopRequireDefault(_settings);
 
-var _eventemitter = __webpack_require__(/*! eventemitter3 */ "./node_modules/pixi.js/node_modules/eventemitter3/index.js-exposed");
+var _eventemitter = __webpack_require__(/*! eventemitter3 */ "./node_modules/pixi.js/node_modules/eventemitter3/index.js");
 
 var _eventemitter2 = _interopRequireDefault(_eventemitter);
 
-var _determineCrossOrigin = __webpack_require__(/*! ../utils/determineCrossOrigin */ "./node_modules/pixi.js/lib/core/utils/determineCrossOrigin.js-exposed");
+var _determineCrossOrigin = __webpack_require__(/*! ../utils/determineCrossOrigin */ "./node_modules/pixi.js/lib/core/utils/determineCrossOrigin.js");
 
 var _determineCrossOrigin2 = _interopRequireDefault(_determineCrossOrigin);
 
@@ -30971,19 +30966,6 @@ exports.default = BaseTexture;
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/core/textures/BaseTexture.js-exposed":
-/*!***********************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/textures/BaseTexture.js-exposed ***!
-  \***********************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./BaseTexture.js */ "./node_modules/pixi.js/lib/core/textures/BaseTexture.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/core/textures/RenderTexture.js":
 /*!*****************************************************************!*\
   !*** ./node_modules/pixi.js/lib/core/textures/RenderTexture.js ***!
@@ -30996,11 +30978,11 @@ module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./BaseTexture.
 
 exports.__esModule = true;
 
-var _BaseRenderTexture = __webpack_require__(/*! ./BaseRenderTexture */ "./node_modules/pixi.js/lib/core/textures/BaseRenderTexture.js-exposed");
+var _BaseRenderTexture = __webpack_require__(/*! ./BaseRenderTexture */ "./node_modules/pixi.js/lib/core/textures/BaseRenderTexture.js");
 
 var _BaseRenderTexture2 = _interopRequireDefault(_BaseRenderTexture);
 
-var _Texture2 = __webpack_require__(/*! ./Texture */ "./node_modules/pixi.js/lib/core/textures/Texture.js-exposed");
+var _Texture2 = __webpack_require__(/*! ./Texture */ "./node_modules/pixi.js/lib/core/textures/Texture.js");
 
 var _Texture3 = _interopRequireDefault(_Texture2);
 
@@ -31148,19 +31130,6 @@ exports.default = RenderTexture;
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/core/textures/RenderTexture.js-exposed":
-/*!*************************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/textures/RenderTexture.js-exposed ***!
-  \*************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./RenderTexture.js */ "./node_modules/pixi.js/lib/core/textures/RenderTexture.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/core/textures/Spritesheet.js":
 /*!***************************************************************!*\
   !*** ./node_modules/pixi.js/lib/core/textures/Spritesheet.js ***!
@@ -31175,9 +31144,9 @@ exports.__esModule = true;
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _ = __webpack_require__(/*! ../ */ "./node_modules/pixi.js/lib/core/index.js-exposed");
+var _ = __webpack_require__(/*! ../ */ "./node_modules/pixi.js/lib/core/index.js");
 
-var _utils = __webpack_require__(/*! ../utils */ "./node_modules/pixi.js/lib/core/utils/index.js-exposed");
+var _utils = __webpack_require__(/*! ../utils */ "./node_modules/pixi.js/lib/core/utils/index.js");
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
@@ -31500,19 +31469,6 @@ exports.default = Spritesheet;
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/core/textures/Spritesheet.js-exposed":
-/*!***********************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/textures/Spritesheet.js-exposed ***!
-  \***********************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./Spritesheet.js */ "./node_modules/pixi.js/lib/core/textures/Spritesheet.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/core/textures/Texture.js":
 /*!***********************************************************!*\
   !*** ./node_modules/pixi.js/lib/core/textures/Texture.js ***!
@@ -31527,27 +31483,27 @@ exports.__esModule = true;
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _BaseTexture = __webpack_require__(/*! ./BaseTexture */ "./node_modules/pixi.js/lib/core/textures/BaseTexture.js-exposed");
+var _BaseTexture = __webpack_require__(/*! ./BaseTexture */ "./node_modules/pixi.js/lib/core/textures/BaseTexture.js");
 
 var _BaseTexture2 = _interopRequireDefault(_BaseTexture);
 
-var _VideoBaseTexture = __webpack_require__(/*! ./VideoBaseTexture */ "./node_modules/pixi.js/lib/core/textures/VideoBaseTexture.js-exposed");
+var _VideoBaseTexture = __webpack_require__(/*! ./VideoBaseTexture */ "./node_modules/pixi.js/lib/core/textures/VideoBaseTexture.js");
 
 var _VideoBaseTexture2 = _interopRequireDefault(_VideoBaseTexture);
 
-var _TextureUvs = __webpack_require__(/*! ./TextureUvs */ "./node_modules/pixi.js/lib/core/textures/TextureUvs.js-exposed");
+var _TextureUvs = __webpack_require__(/*! ./TextureUvs */ "./node_modules/pixi.js/lib/core/textures/TextureUvs.js");
 
 var _TextureUvs2 = _interopRequireDefault(_TextureUvs);
 
-var _eventemitter = __webpack_require__(/*! eventemitter3 */ "./node_modules/pixi.js/node_modules/eventemitter3/index.js-exposed");
+var _eventemitter = __webpack_require__(/*! eventemitter3 */ "./node_modules/pixi.js/node_modules/eventemitter3/index.js");
 
 var _eventemitter2 = _interopRequireDefault(_eventemitter);
 
-var _math = __webpack_require__(/*! ../math */ "./node_modules/pixi.js/lib/core/math/index.js-exposed");
+var _math = __webpack_require__(/*! ../math */ "./node_modules/pixi.js/lib/core/math/index.js");
 
-var _utils = __webpack_require__(/*! ../utils */ "./node_modules/pixi.js/lib/core/utils/index.js-exposed");
+var _utils = __webpack_require__(/*! ../utils */ "./node_modules/pixi.js/lib/core/utils/index.js");
 
-var _settings = __webpack_require__(/*! ../settings */ "./node_modules/pixi.js/lib/core/settings.js-exposed");
+var _settings = __webpack_require__(/*! ../settings */ "./node_modules/pixi.js/lib/core/settings.js");
 
 var _settings2 = _interopRequireDefault(_settings);
 
@@ -32224,19 +32180,6 @@ removeAllHandlers(Texture.WHITE.baseTexture);
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/core/textures/Texture.js-exposed":
-/*!*******************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/textures/Texture.js-exposed ***!
-  \*******************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./Texture.js */ "./node_modules/pixi.js/lib/core/textures/Texture.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/core/textures/TextureMatrix.js":
 /*!*****************************************************************!*\
   !*** ./node_modules/pixi.js/lib/core/textures/TextureMatrix.js ***!
@@ -32251,7 +32194,7 @@ exports.__esModule = true;
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _Matrix = __webpack_require__(/*! ../math/Matrix */ "./node_modules/pixi.js/lib/core/math/Matrix.js-exposed");
+var _Matrix = __webpack_require__(/*! ../math/Matrix */ "./node_modules/pixi.js/lib/core/math/Matrix.js");
 
 var _Matrix2 = _interopRequireDefault(_Matrix);
 
@@ -32411,19 +32354,6 @@ exports.default = TextureMatrix;
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/core/textures/TextureMatrix.js-exposed":
-/*!*************************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/textures/TextureMatrix.js-exposed ***!
-  \*************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./TextureMatrix.js */ "./node_modules/pixi.js/lib/core/textures/TextureMatrix.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/core/textures/TextureUvs.js":
 /*!**************************************************************!*\
   !*** ./node_modules/pixi.js/lib/core/textures/TextureUvs.js ***!
@@ -32436,7 +32366,7 @@ module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./TextureMatri
 
 exports.__esModule = true;
 
-var _GroupD = __webpack_require__(/*! ../math/GroupD8 */ "./node_modules/pixi.js/lib/core/math/GroupD8.js-exposed");
+var _GroupD = __webpack_require__(/*! ../math/GroupD8 */ "./node_modules/pixi.js/lib/core/math/GroupD8.js");
 
 var _GroupD2 = _interopRequireDefault(_GroupD);
 
@@ -32539,19 +32469,6 @@ exports.default = TextureUvs;
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/core/textures/TextureUvs.js-exposed":
-/*!**********************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/textures/TextureUvs.js-exposed ***!
-  \**********************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./TextureUvs.js */ "./node_modules/pixi.js/lib/core/textures/TextureUvs.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/core/textures/VideoBaseTexture.js":
 /*!********************************************************************!*\
   !*** ./node_modules/pixi.js/lib/core/textures/VideoBaseTexture.js ***!
@@ -32566,17 +32483,17 @@ exports.__esModule = true;
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _BaseTexture2 = __webpack_require__(/*! ./BaseTexture */ "./node_modules/pixi.js/lib/core/textures/BaseTexture.js-exposed");
+var _BaseTexture2 = __webpack_require__(/*! ./BaseTexture */ "./node_modules/pixi.js/lib/core/textures/BaseTexture.js");
 
 var _BaseTexture3 = _interopRequireDefault(_BaseTexture2);
 
-var _utils = __webpack_require__(/*! ../utils */ "./node_modules/pixi.js/lib/core/utils/index.js-exposed");
+var _utils = __webpack_require__(/*! ../utils */ "./node_modules/pixi.js/lib/core/utils/index.js");
 
-var _ticker = __webpack_require__(/*! ../ticker */ "./node_modules/pixi.js/lib/core/ticker/index.js-exposed");
+var _ticker = __webpack_require__(/*! ../ticker */ "./node_modules/pixi.js/lib/core/ticker/index.js");
 
-var _const = __webpack_require__(/*! ../const */ "./node_modules/pixi.js/lib/core/const.js-exposed");
+var _const = __webpack_require__(/*! ../const */ "./node_modules/pixi.js/lib/core/const.js");
 
-var _determineCrossOrigin = __webpack_require__(/*! ../utils/determineCrossOrigin */ "./node_modules/pixi.js/lib/core/utils/determineCrossOrigin.js-exposed");
+var _determineCrossOrigin = __webpack_require__(/*! ../utils/determineCrossOrigin */ "./node_modules/pixi.js/lib/core/utils/determineCrossOrigin.js");
 
 var _determineCrossOrigin2 = _interopRequireDefault(_determineCrossOrigin);
 
@@ -32905,19 +32822,6 @@ function createSource(path, type) {
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/core/textures/VideoBaseTexture.js-exposed":
-/*!****************************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/textures/VideoBaseTexture.js-exposed ***!
-  \****************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./VideoBaseTexture.js */ "./node_modules/pixi.js/lib/core/textures/VideoBaseTexture.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/core/ticker/Ticker.js":
 /*!********************************************************!*\
   !*** ./node_modules/pixi.js/lib/core/ticker/Ticker.js ***!
@@ -32932,13 +32836,13 @@ exports.__esModule = true;
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _settings = __webpack_require__(/*! ../settings */ "./node_modules/pixi.js/lib/core/settings.js-exposed");
+var _settings = __webpack_require__(/*! ../settings */ "./node_modules/pixi.js/lib/core/settings.js");
 
 var _settings2 = _interopRequireDefault(_settings);
 
-var _const = __webpack_require__(/*! ../const */ "./node_modules/pixi.js/lib/core/const.js-exposed");
+var _const = __webpack_require__(/*! ../const */ "./node_modules/pixi.js/lib/core/const.js");
 
-var _TickerListener = __webpack_require__(/*! ./TickerListener */ "./node_modules/pixi.js/lib/core/ticker/TickerListener.js-exposed");
+var _TickerListener = __webpack_require__(/*! ./TickerListener */ "./node_modules/pixi.js/lib/core/ticker/TickerListener.js");
 
 var _TickerListener2 = _interopRequireDefault(_TickerListener);
 
@@ -33401,19 +33305,6 @@ exports.default = Ticker;
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/core/ticker/Ticker.js-exposed":
-/*!****************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/ticker/Ticker.js-exposed ***!
-  \****************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./Ticker.js */ "./node_modules/pixi.js/lib/core/ticker/Ticker.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/core/ticker/TickerListener.js":
 /*!****************************************************************!*\
   !*** ./node_modules/pixi.js/lib/core/ticker/TickerListener.js ***!
@@ -33598,19 +33489,6 @@ exports.default = TickerListener;
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/core/ticker/TickerListener.js-exposed":
-/*!************************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/ticker/TickerListener.js-exposed ***!
-  \************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./TickerListener.js */ "./node_modules/pixi.js/lib/core/ticker/TickerListener.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/core/ticker/index.js":
 /*!*******************************************************!*\
   !*** ./node_modules/pixi.js/lib/core/ticker/index.js ***!
@@ -33624,7 +33502,7 @@ module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./TickerListen
 exports.__esModule = true;
 exports.Ticker = exports.shared = undefined;
 
-var _Ticker = __webpack_require__(/*! ./Ticker */ "./node_modules/pixi.js/lib/core/ticker/Ticker.js-exposed");
+var _Ticker = __webpack_require__(/*! ./Ticker */ "./node_modules/pixi.js/lib/core/ticker/Ticker.js");
 
 var _Ticker2 = _interopRequireDefault(_Ticker);
 
@@ -33701,19 +33579,6 @@ exports.Ticker = _Ticker2.default;
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/core/ticker/index.js-exposed":
-/*!***************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/ticker/index.js-exposed ***!
-  \***************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./index.js */ "./node_modules/pixi.js/lib/core/ticker/index.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/core/utils/canUploadSameBuffer.js":
 /*!********************************************************************!*\
   !*** ./node_modules/pixi.js/lib/core/utils/canUploadSameBuffer.js ***!
@@ -33735,19 +33600,6 @@ function canUploadSameBuffer() {
 	return !ios;
 }
 //# sourceMappingURL=canUploadSameBuffer.js.map
-
-/***/ }),
-
-/***/ "./node_modules/pixi.js/lib/core/utils/canUploadSameBuffer.js-exposed":
-/*!****************************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/utils/canUploadSameBuffer.js-exposed ***!
-  \****************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./canUploadSameBuffer.js */ "./node_modules/pixi.js/lib/core/utils/canUploadSameBuffer.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
 
 /***/ }),
 
@@ -33792,19 +33644,6 @@ function createIndicesForQuads(size) {
     return indices;
 }
 //# sourceMappingURL=createIndicesForQuads.js.map
-
-/***/ }),
-
-/***/ "./node_modules/pixi.js/lib/core/utils/createIndicesForQuads.js-exposed":
-/*!******************************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/utils/createIndicesForQuads.js-exposed ***!
-  \******************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./createIndicesForQuads.js */ "./node_modules/pixi.js/lib/core/utils/createIndicesForQuads.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
 
 /***/ }),
 
@@ -33874,19 +33713,6 @@ function determineCrossOrigin(url) {
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/core/utils/determineCrossOrigin.js-exposed":
-/*!*****************************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/utils/determineCrossOrigin.js-exposed ***!
-  \*****************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./determineCrossOrigin.js */ "./node_modules/pixi.js/lib/core/utils/determineCrossOrigin.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/core/utils/index.js":
 /*!******************************************************!*\
   !*** ./node_modules/pixi.js/lib/core/utils/index.js ***!
@@ -33918,21 +33744,21 @@ exports.premultiplyTint = premultiplyTint;
 exports.premultiplyRgba = premultiplyRgba;
 exports.premultiplyTintToRgba = premultiplyTintToRgba;
 
-var _const = __webpack_require__(/*! ../const */ "./node_modules/pixi.js/lib/core/const.js-exposed");
+var _const = __webpack_require__(/*! ../const */ "./node_modules/pixi.js/lib/core/const.js");
 
-var _settings = __webpack_require__(/*! ../settings */ "./node_modules/pixi.js/lib/core/settings.js-exposed");
+var _settings = __webpack_require__(/*! ../settings */ "./node_modules/pixi.js/lib/core/settings.js");
 
 var _settings2 = _interopRequireDefault(_settings);
 
-var _eventemitter = __webpack_require__(/*! eventemitter3 */ "./node_modules/pixi.js/node_modules/eventemitter3/index.js-exposed");
+var _eventemitter = __webpack_require__(/*! eventemitter3 */ "./node_modules/pixi.js/node_modules/eventemitter3/index.js");
 
 var _eventemitter2 = _interopRequireDefault(_eventemitter);
 
-var _pluginTarget = __webpack_require__(/*! ./pluginTarget */ "./node_modules/pixi.js/lib/core/utils/pluginTarget.js-exposed");
+var _pluginTarget = __webpack_require__(/*! ./pluginTarget */ "./node_modules/pixi.js/lib/core/utils/pluginTarget.js");
 
 var _pluginTarget2 = _interopRequireDefault(_pluginTarget);
 
-var _mixin = __webpack_require__(/*! ./mixin */ "./node_modules/pixi.js/lib/core/utils/mixin.js-exposed");
+var _mixin = __webpack_require__(/*! ./mixin */ "./node_modules/pixi.js/lib/core/utils/mixin.js");
 
 var mixins = _interopRequireWildcard(_mixin);
 
@@ -33944,7 +33770,7 @@ var _removeArrayItems = __webpack_require__(/*! remove-array-items */ "./node_mo
 
 var _removeArrayItems2 = _interopRequireDefault(_removeArrayItems);
 
-var _mapPremultipliedBlendModes = __webpack_require__(/*! ./mapPremultipliedBlendModes */ "./node_modules/pixi.js/lib/core/utils/mapPremultipliedBlendModes.js-exposed");
+var _mapPremultipliedBlendModes = __webpack_require__(/*! ./mapPremultipliedBlendModes */ "./node_modules/pixi.js/lib/core/utils/mapPremultipliedBlendModes.js");
 
 var _mapPremultipliedBlendModes2 = _interopRequireDefault(_mapPremultipliedBlendModes);
 
@@ -34380,19 +34206,6 @@ function premultiplyTintToRgba(tint, alpha, out, premultiply) {
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/core/utils/index.js-exposed":
-/*!**************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/utils/index.js-exposed ***!
-  \**************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./index.js */ "./node_modules/pixi.js/lib/core/utils/index.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/core/utils/mapPremultipliedBlendModes.js":
 /*!***************************************************************************!*\
   !*** ./node_modules/pixi.js/lib/core/utils/mapPremultipliedBlendModes.js ***!
@@ -34406,7 +34219,7 @@ module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./index.js */ 
 exports.__esModule = true;
 exports.default = mapPremultipliedBlendModes;
 
-var _const = __webpack_require__(/*! ../const */ "./node_modules/pixi.js/lib/core/const.js-exposed");
+var _const = __webpack_require__(/*! ../const */ "./node_modules/pixi.js/lib/core/const.js");
 
 /**
  * Corrects PixiJS blend, takes premultiplied alpha into account
@@ -34446,19 +34259,6 @@ function mapPremultipliedBlendModes() {
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/core/utils/mapPremultipliedBlendModes.js-exposed":
-/*!***********************************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/utils/mapPremultipliedBlendModes.js-exposed ***!
-  \***********************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./mapPremultipliedBlendModes.js */ "./node_modules/pixi.js/lib/core/utils/mapPremultipliedBlendModes.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/core/utils/maxRecommendedTextures.js":
 /*!***********************************************************************!*\
   !*** ./node_modules/pixi.js/lib/core/utils/maxRecommendedTextures.js ***!
@@ -34488,19 +34288,6 @@ function maxRecommendedTextures(max) {
     return max;
 }
 //# sourceMappingURL=maxRecommendedTextures.js.map
-
-/***/ }),
-
-/***/ "./node_modules/pixi.js/lib/core/utils/maxRecommendedTextures.js-exposed":
-/*!*******************************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/utils/maxRecommendedTextures.js-exposed ***!
-  \*******************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./maxRecommendedTextures.js */ "./node_modules/pixi.js/lib/core/utils/maxRecommendedTextures.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
 
 /***/ }),
 
@@ -34573,19 +34360,6 @@ function performMixins() {
     mixins.length = 0;
 }
 //# sourceMappingURL=mixin.js.map
-
-/***/ }),
-
-/***/ "./node_modules/pixi.js/lib/core/utils/mixin.js-exposed":
-/*!**************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/utils/mixin.js-exposed ***!
-  \**************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./mixin.js */ "./node_modules/pixi.js/lib/core/utils/mixin.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
 
 /***/ }),
 
@@ -34662,19 +34436,6 @@ exports.default = {
     }
 };
 //# sourceMappingURL=pluginTarget.js.map
-
-/***/ }),
-
-/***/ "./node_modules/pixi.js/lib/core/utils/pluginTarget.js-exposed":
-/*!*********************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/utils/pluginTarget.js-exposed ***!
-  \*********************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./pluginTarget.js */ "./node_modules/pixi.js/lib/core/utils/pluginTarget.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
 
 /***/ }),
 
@@ -34763,19 +34524,6 @@ function trimCanvas(canvas) {
     };
 }
 //# sourceMappingURL=trimCanvas.js.map
-
-/***/ }),
-
-/***/ "./node_modules/pixi.js/lib/core/utils/trimCanvas.js-exposed":
-/*!*******************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/core/utils/trimCanvas.js-exposed ***!
-  \*******************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./trimCanvas.js */ "./node_modules/pixi.js/lib/core/utils/trimCanvas.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
 
 /***/ }),
 
@@ -35945,19 +35693,6 @@ function deprecation(core) {
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/deprecation.js-exposed":
-/*!*********************************************************!*\
-  !*** ./node_modules/pixi.js/lib/deprecation.js-exposed ***!
-  \*********************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./deprecation.js */ "./node_modules/pixi.js/lib/deprecation.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/extract/canvas/CanvasExtract.js":
 /*!******************************************************************!*\
   !*** ./node_modules/pixi.js/lib/extract/canvas/CanvasExtract.js ***!
@@ -35970,7 +35705,7 @@ module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./deprecation.
 
 exports.__esModule = true;
 
-var _core = __webpack_require__(/*! ../../core */ "./node_modules/pixi.js/lib/core/index.js-exposed");
+var _core = __webpack_require__(/*! ../../core */ "./node_modules/pixi.js/lib/core/index.js");
 
 var core = _interopRequireWildcard(_core);
 
@@ -36148,19 +35883,6 @@ core.CanvasRenderer.registerPlugin('extract', CanvasExtract);
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/extract/canvas/CanvasExtract.js-exposed":
-/*!**************************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/extract/canvas/CanvasExtract.js-exposed ***!
-  \**************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./CanvasExtract.js */ "./node_modules/pixi.js/lib/extract/canvas/CanvasExtract.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/extract/index.js":
 /*!***************************************************!*\
   !*** ./node_modules/pixi.js/lib/extract/index.js ***!
@@ -36173,7 +35895,7 @@ module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./CanvasExtrac
 
 exports.__esModule = true;
 
-var _WebGLExtract = __webpack_require__(/*! ./webgl/WebGLExtract */ "./node_modules/pixi.js/lib/extract/webgl/WebGLExtract.js-exposed");
+var _WebGLExtract = __webpack_require__(/*! ./webgl/WebGLExtract */ "./node_modules/pixi.js/lib/extract/webgl/WebGLExtract.js");
 
 Object.defineProperty(exports, 'webgl', {
   enumerable: true,
@@ -36182,7 +35904,7 @@ Object.defineProperty(exports, 'webgl', {
   }
 });
 
-var _CanvasExtract = __webpack_require__(/*! ./canvas/CanvasExtract */ "./node_modules/pixi.js/lib/extract/canvas/CanvasExtract.js-exposed");
+var _CanvasExtract = __webpack_require__(/*! ./canvas/CanvasExtract */ "./node_modules/pixi.js/lib/extract/canvas/CanvasExtract.js");
 
 Object.defineProperty(exports, 'canvas', {
   enumerable: true,
@@ -36193,19 +35915,6 @@ Object.defineProperty(exports, 'canvas', {
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 //# sourceMappingURL=index.js.map
-
-/***/ }),
-
-/***/ "./node_modules/pixi.js/lib/extract/index.js-exposed":
-/*!***********************************************************!*\
-  !*** ./node_modules/pixi.js/lib/extract/index.js-exposed ***!
-  \***********************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./index.js */ "./node_modules/pixi.js/lib/extract/index.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
 
 /***/ }),
 
@@ -36221,7 +35930,7 @@ module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./index.js */ 
 
 exports.__esModule = true;
 
-var _core = __webpack_require__(/*! ../../core */ "./node_modules/pixi.js/lib/core/index.js-exposed");
+var _core = __webpack_require__(/*! ../../core */ "./node_modules/pixi.js/lib/core/index.js");
 
 var core = _interopRequireWildcard(_core);
 
@@ -36454,19 +36163,6 @@ core.WebGLRenderer.registerPlugin('extract', WebGLExtract);
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/extract/webgl/WebGLExtract.js-exposed":
-/*!************************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/extract/webgl/WebGLExtract.js-exposed ***!
-  \************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./WebGLExtract.js */ "./node_modules/pixi.js/lib/extract/webgl/WebGLExtract.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/extras/AnimatedSprite.js":
 /*!***********************************************************!*\
   !*** ./node_modules/pixi.js/lib/extras/AnimatedSprite.js ***!
@@ -36481,7 +36177,7 @@ exports.__esModule = true;
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _core = __webpack_require__(/*! ../core */ "./node_modules/pixi.js/lib/core/index.js-exposed");
+var _core = __webpack_require__(/*! ../core */ "./node_modules/pixi.js/lib/core/index.js");
 
 var core = _interopRequireWildcard(_core);
 
@@ -36899,19 +36595,6 @@ exports.default = AnimatedSprite;
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/extras/AnimatedSprite.js-exposed":
-/*!*******************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/extras/AnimatedSprite.js-exposed ***!
-  \*******************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./AnimatedSprite.js */ "./node_modules/pixi.js/lib/extras/AnimatedSprite.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/extras/BitmapText.js":
 /*!*******************************************************!*\
   !*** ./node_modules/pixi.js/lib/extras/BitmapText.js ***!
@@ -36926,17 +36609,17 @@ exports.__esModule = true;
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _core = __webpack_require__(/*! ../core */ "./node_modules/pixi.js/lib/core/index.js-exposed");
+var _core = __webpack_require__(/*! ../core */ "./node_modules/pixi.js/lib/core/index.js");
 
 var core = _interopRequireWildcard(_core);
 
-var _ObservablePoint = __webpack_require__(/*! ../core/math/ObservablePoint */ "./node_modules/pixi.js/lib/core/math/ObservablePoint.js-exposed");
+var _ObservablePoint = __webpack_require__(/*! ../core/math/ObservablePoint */ "./node_modules/pixi.js/lib/core/math/ObservablePoint.js");
 
 var _ObservablePoint2 = _interopRequireDefault(_ObservablePoint);
 
-var _utils = __webpack_require__(/*! ../core/utils */ "./node_modules/pixi.js/lib/core/utils/index.js-exposed");
+var _utils = __webpack_require__(/*! ../core/utils */ "./node_modules/pixi.js/lib/core/utils/index.js");
 
-var _settings = __webpack_require__(/*! ../core/settings */ "./node_modules/pixi.js/lib/core/settings.js-exposed");
+var _settings = __webpack_require__(/*! ../core/settings */ "./node_modules/pixi.js/lib/core/settings.js");
 
 var _settings2 = _interopRequireDefault(_settings);
 
@@ -37567,19 +37250,6 @@ BitmapText.fonts = {};
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/extras/BitmapText.js-exposed":
-/*!***************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/extras/BitmapText.js-exposed ***!
-  \***************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./BitmapText.js */ "./node_modules/pixi.js/lib/extras/BitmapText.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/extras/TilingSprite.js":
 /*!*********************************************************!*\
   !*** ./node_modules/pixi.js/lib/extras/TilingSprite.js ***!
@@ -37594,11 +37264,11 @@ exports.__esModule = true;
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _core = __webpack_require__(/*! ../core */ "./node_modules/pixi.js/lib/core/index.js-exposed");
+var _core = __webpack_require__(/*! ../core */ "./node_modules/pixi.js/lib/core/index.js");
 
 var core = _interopRequireWildcard(_core);
 
-var _CanvasTinter = __webpack_require__(/*! ../core/sprites/canvas/CanvasTinter */ "./node_modules/pixi.js/lib/core/sprites/canvas/CanvasTinter.js-exposed");
+var _CanvasTinter = __webpack_require__(/*! ../core/sprites/canvas/CanvasTinter */ "./node_modules/pixi.js/lib/core/sprites/canvas/CanvasTinter.js");
 
 var _CanvasTinter2 = _interopRequireDefault(_CanvasTinter);
 
@@ -38036,19 +37706,6 @@ exports.default = TilingSprite;
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/extras/TilingSprite.js-exposed":
-/*!*****************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/extras/TilingSprite.js-exposed ***!
-  \*****************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./TilingSprite.js */ "./node_modules/pixi.js/lib/extras/TilingSprite.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/extras/cacheAsBitmap.js":
 /*!**********************************************************!*\
   !*** ./node_modules/pixi.js/lib/extras/cacheAsBitmap.js ***!
@@ -38059,19 +37716,19 @@ module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./TilingSprite
 "use strict";
 
 
-var _core = __webpack_require__(/*! ../core */ "./node_modules/pixi.js/lib/core/index.js-exposed");
+var _core = __webpack_require__(/*! ../core */ "./node_modules/pixi.js/lib/core/index.js");
 
 var core = _interopRequireWildcard(_core);
 
-var _Texture = __webpack_require__(/*! ../core/textures/Texture */ "./node_modules/pixi.js/lib/core/textures/Texture.js-exposed");
+var _Texture = __webpack_require__(/*! ../core/textures/Texture */ "./node_modules/pixi.js/lib/core/textures/Texture.js");
 
 var _Texture2 = _interopRequireDefault(_Texture);
 
-var _BaseTexture = __webpack_require__(/*! ../core/textures/BaseTexture */ "./node_modules/pixi.js/lib/core/textures/BaseTexture.js-exposed");
+var _BaseTexture = __webpack_require__(/*! ../core/textures/BaseTexture */ "./node_modules/pixi.js/lib/core/textures/BaseTexture.js");
 
 var _BaseTexture2 = _interopRequireDefault(_BaseTexture);
 
-var _utils = __webpack_require__(/*! ../core/utils */ "./node_modules/pixi.js/lib/core/utils/index.js-exposed");
+var _utils = __webpack_require__(/*! ../core/utils */ "./node_modules/pixi.js/lib/core/utils/index.js");
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -38463,19 +38120,6 @@ DisplayObject.prototype._cacheAsBitmapDestroy = function _cacheAsBitmapDestroy(o
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/extras/cacheAsBitmap.js-exposed":
-/*!******************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/extras/cacheAsBitmap.js-exposed ***!
-  \******************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./cacheAsBitmap.js */ "./node_modules/pixi.js/lib/extras/cacheAsBitmap.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/extras/getChildByName.js":
 /*!***********************************************************!*\
   !*** ./node_modules/pixi.js/lib/extras/getChildByName.js ***!
@@ -38486,7 +38130,7 @@ module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./cacheAsBitma
 "use strict";
 
 
-var _core = __webpack_require__(/*! ../core */ "./node_modules/pixi.js/lib/core/index.js-exposed");
+var _core = __webpack_require__(/*! ../core */ "./node_modules/pixi.js/lib/core/index.js");
 
 var core = _interopRequireWildcard(_core);
 
@@ -38521,19 +38165,6 @@ core.Container.prototype.getChildByName = function getChildByName(name) {
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/extras/getChildByName.js-exposed":
-/*!*******************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/extras/getChildByName.js-exposed ***!
-  \*******************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./getChildByName.js */ "./node_modules/pixi.js/lib/extras/getChildByName.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/extras/getGlobalPosition.js":
 /*!**************************************************************!*\
   !*** ./node_modules/pixi.js/lib/extras/getGlobalPosition.js ***!
@@ -38544,7 +38175,7 @@ module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./getChildByNa
 "use strict";
 
 
-var _core = __webpack_require__(/*! ../core */ "./node_modules/pixi.js/lib/core/index.js-exposed");
+var _core = __webpack_require__(/*! ../core */ "./node_modules/pixi.js/lib/core/index.js");
 
 var core = _interopRequireWildcard(_core);
 
@@ -38578,19 +38209,6 @@ core.DisplayObject.prototype.getGlobalPosition = function getGlobalPosition() {
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/extras/getGlobalPosition.js-exposed":
-/*!**********************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/extras/getGlobalPosition.js-exposed ***!
-  \**********************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./getGlobalPosition.js */ "./node_modules/pixi.js/lib/extras/getGlobalPosition.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/extras/index.js":
 /*!**************************************************!*\
   !*** ./node_modules/pixi.js/lib/extras/index.js ***!
@@ -38604,7 +38222,7 @@ module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./getGlobalPos
 exports.__esModule = true;
 exports.BitmapText = exports.TilingSpriteRenderer = exports.TilingSprite = exports.AnimatedSprite = undefined;
 
-var _AnimatedSprite = __webpack_require__(/*! ./AnimatedSprite */ "./node_modules/pixi.js/lib/extras/AnimatedSprite.js-exposed");
+var _AnimatedSprite = __webpack_require__(/*! ./AnimatedSprite */ "./node_modules/pixi.js/lib/extras/AnimatedSprite.js");
 
 Object.defineProperty(exports, 'AnimatedSprite', {
   enumerable: true,
@@ -38613,7 +38231,7 @@ Object.defineProperty(exports, 'AnimatedSprite', {
   }
 });
 
-var _TilingSprite = __webpack_require__(/*! ./TilingSprite */ "./node_modules/pixi.js/lib/extras/TilingSprite.js-exposed");
+var _TilingSprite = __webpack_require__(/*! ./TilingSprite */ "./node_modules/pixi.js/lib/extras/TilingSprite.js");
 
 Object.defineProperty(exports, 'TilingSprite', {
   enumerable: true,
@@ -38622,7 +38240,7 @@ Object.defineProperty(exports, 'TilingSprite', {
   }
 });
 
-var _TilingSpriteRenderer = __webpack_require__(/*! ./webgl/TilingSpriteRenderer */ "./node_modules/pixi.js/lib/extras/webgl/TilingSpriteRenderer.js-exposed");
+var _TilingSpriteRenderer = __webpack_require__(/*! ./webgl/TilingSpriteRenderer */ "./node_modules/pixi.js/lib/extras/webgl/TilingSpriteRenderer.js");
 
 Object.defineProperty(exports, 'TilingSpriteRenderer', {
   enumerable: true,
@@ -38631,7 +38249,7 @@ Object.defineProperty(exports, 'TilingSpriteRenderer', {
   }
 });
 
-var _BitmapText = __webpack_require__(/*! ./BitmapText */ "./node_modules/pixi.js/lib/extras/BitmapText.js-exposed");
+var _BitmapText = __webpack_require__(/*! ./BitmapText */ "./node_modules/pixi.js/lib/extras/BitmapText.js");
 
 Object.defineProperty(exports, 'BitmapText', {
   enumerable: true,
@@ -38640,29 +38258,16 @@ Object.defineProperty(exports, 'BitmapText', {
   }
 });
 
-__webpack_require__(/*! ./cacheAsBitmap */ "./node_modules/pixi.js/lib/extras/cacheAsBitmap.js-exposed");
+__webpack_require__(/*! ./cacheAsBitmap */ "./node_modules/pixi.js/lib/extras/cacheAsBitmap.js");
 
-__webpack_require__(/*! ./getChildByName */ "./node_modules/pixi.js/lib/extras/getChildByName.js-exposed");
+__webpack_require__(/*! ./getChildByName */ "./node_modules/pixi.js/lib/extras/getChildByName.js");
 
-__webpack_require__(/*! ./getGlobalPosition */ "./node_modules/pixi.js/lib/extras/getGlobalPosition.js-exposed");
+__webpack_require__(/*! ./getGlobalPosition */ "./node_modules/pixi.js/lib/extras/getGlobalPosition.js");
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 // imported for side effect of extending the prototype only, contains no exports
 //# sourceMappingURL=index.js.map
-
-/***/ }),
-
-/***/ "./node_modules/pixi.js/lib/extras/index.js-exposed":
-/*!**********************************************************!*\
-  !*** ./node_modules/pixi.js/lib/extras/index.js-exposed ***!
-  \**********************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./index.js */ "./node_modules/pixi.js/lib/extras/index.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
 
 /***/ }),
 
@@ -38678,11 +38283,11 @@ module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./index.js */ 
 
 exports.__esModule = true;
 
-var _core = __webpack_require__(/*! ../../core */ "./node_modules/pixi.js/lib/core/index.js-exposed");
+var _core = __webpack_require__(/*! ../../core */ "./node_modules/pixi.js/lib/core/index.js");
 
 var core = _interopRequireWildcard(_core);
 
-var _const = __webpack_require__(/*! ../../core/const */ "./node_modules/pixi.js/lib/core/const.js-exposed");
+var _const = __webpack_require__(/*! ../../core/const */ "./node_modules/pixi.js/lib/core/const.js");
 
 var _path = __webpack_require__(/*! path */ "./node_modules/path-browserify/index.js");
 
@@ -38838,19 +38443,6 @@ core.WebGLRenderer.registerPlugin('tilingSprite', TilingSpriteRenderer);
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/extras/webgl/TilingSpriteRenderer.js-exposed":
-/*!*******************************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/extras/webgl/TilingSpriteRenderer.js-exposed ***!
-  \*******************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./TilingSpriteRenderer.js */ "./node_modules/pixi.js/lib/extras/webgl/TilingSpriteRenderer.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/filters/alpha/AlphaFilter.js":
 /*!***************************************************************!*\
   !*** ./node_modules/pixi.js/lib/filters/alpha/AlphaFilter.js ***!
@@ -38865,7 +38457,7 @@ exports.__esModule = true;
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _core = __webpack_require__(/*! ../../core */ "./node_modules/pixi.js/lib/core/index.js-exposed");
+var _core = __webpack_require__(/*! ../../core */ "./node_modules/pixi.js/lib/core/index.js");
 
 var core = _interopRequireWildcard(_core);
 
@@ -38945,19 +38537,6 @@ exports.default = AlphaFilter;
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/filters/alpha/AlphaFilter.js-exposed":
-/*!***********************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/filters/alpha/AlphaFilter.js-exposed ***!
-  \***********************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./AlphaFilter.js */ "./node_modules/pixi.js/lib/filters/alpha/AlphaFilter.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/filters/blur/BlurFilter.js":
 /*!*************************************************************!*\
   !*** ./node_modules/pixi.js/lib/filters/blur/BlurFilter.js ***!
@@ -38972,15 +38551,15 @@ exports.__esModule = true;
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _core = __webpack_require__(/*! ../../core */ "./node_modules/pixi.js/lib/core/index.js-exposed");
+var _core = __webpack_require__(/*! ../../core */ "./node_modules/pixi.js/lib/core/index.js");
 
 var core = _interopRequireWildcard(_core);
 
-var _BlurXFilter = __webpack_require__(/*! ./BlurXFilter */ "./node_modules/pixi.js/lib/filters/blur/BlurXFilter.js-exposed");
+var _BlurXFilter = __webpack_require__(/*! ./BlurXFilter */ "./node_modules/pixi.js/lib/filters/blur/BlurXFilter.js");
 
 var _BlurXFilter2 = _interopRequireDefault(_BlurXFilter);
 
-var _BlurYFilter = __webpack_require__(/*! ./BlurYFilter */ "./node_modules/pixi.js/lib/filters/blur/BlurYFilter.js-exposed");
+var _BlurYFilter = __webpack_require__(/*! ./BlurYFilter */ "./node_modules/pixi.js/lib/filters/blur/BlurYFilter.js");
 
 var _BlurYFilter2 = _interopRequireDefault(_BlurYFilter);
 
@@ -39142,19 +38721,6 @@ exports.default = BlurFilter;
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/filters/blur/BlurFilter.js-exposed":
-/*!*********************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/filters/blur/BlurFilter.js-exposed ***!
-  \*********************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./BlurFilter.js */ "./node_modules/pixi.js/lib/filters/blur/BlurFilter.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/filters/blur/BlurXFilter.js":
 /*!**************************************************************!*\
   !*** ./node_modules/pixi.js/lib/filters/blur/BlurXFilter.js ***!
@@ -39169,19 +38735,19 @@ exports.__esModule = true;
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _core = __webpack_require__(/*! ../../core */ "./node_modules/pixi.js/lib/core/index.js-exposed");
+var _core = __webpack_require__(/*! ../../core */ "./node_modules/pixi.js/lib/core/index.js");
 
 var core = _interopRequireWildcard(_core);
 
-var _generateBlurVertSource = __webpack_require__(/*! ./generateBlurVertSource */ "./node_modules/pixi.js/lib/filters/blur/generateBlurVertSource.js-exposed");
+var _generateBlurVertSource = __webpack_require__(/*! ./generateBlurVertSource */ "./node_modules/pixi.js/lib/filters/blur/generateBlurVertSource.js");
 
 var _generateBlurVertSource2 = _interopRequireDefault(_generateBlurVertSource);
 
-var _generateBlurFragSource = __webpack_require__(/*! ./generateBlurFragSource */ "./node_modules/pixi.js/lib/filters/blur/generateBlurFragSource.js-exposed");
+var _generateBlurFragSource = __webpack_require__(/*! ./generateBlurFragSource */ "./node_modules/pixi.js/lib/filters/blur/generateBlurFragSource.js");
 
 var _generateBlurFragSource2 = _interopRequireDefault(_generateBlurFragSource);
 
-var _getMaxBlurKernelSize = __webpack_require__(/*! ./getMaxBlurKernelSize */ "./node_modules/pixi.js/lib/filters/blur/getMaxBlurKernelSize.js-exposed");
+var _getMaxBlurKernelSize = __webpack_require__(/*! ./getMaxBlurKernelSize */ "./node_modules/pixi.js/lib/filters/blur/getMaxBlurKernelSize.js");
 
 var _getMaxBlurKernelSize2 = _interopRequireDefault(_getMaxBlurKernelSize);
 
@@ -39331,19 +38897,6 @@ exports.default = BlurXFilter;
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/filters/blur/BlurXFilter.js-exposed":
-/*!**********************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/filters/blur/BlurXFilter.js-exposed ***!
-  \**********************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./BlurXFilter.js */ "./node_modules/pixi.js/lib/filters/blur/BlurXFilter.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/filters/blur/BlurYFilter.js":
 /*!**************************************************************!*\
   !*** ./node_modules/pixi.js/lib/filters/blur/BlurYFilter.js ***!
@@ -39358,19 +38911,19 @@ exports.__esModule = true;
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _core = __webpack_require__(/*! ../../core */ "./node_modules/pixi.js/lib/core/index.js-exposed");
+var _core = __webpack_require__(/*! ../../core */ "./node_modules/pixi.js/lib/core/index.js");
 
 var core = _interopRequireWildcard(_core);
 
-var _generateBlurVertSource = __webpack_require__(/*! ./generateBlurVertSource */ "./node_modules/pixi.js/lib/filters/blur/generateBlurVertSource.js-exposed");
+var _generateBlurVertSource = __webpack_require__(/*! ./generateBlurVertSource */ "./node_modules/pixi.js/lib/filters/blur/generateBlurVertSource.js");
 
 var _generateBlurVertSource2 = _interopRequireDefault(_generateBlurVertSource);
 
-var _generateBlurFragSource = __webpack_require__(/*! ./generateBlurFragSource */ "./node_modules/pixi.js/lib/filters/blur/generateBlurFragSource.js-exposed");
+var _generateBlurFragSource = __webpack_require__(/*! ./generateBlurFragSource */ "./node_modules/pixi.js/lib/filters/blur/generateBlurFragSource.js");
 
 var _generateBlurFragSource2 = _interopRequireDefault(_generateBlurFragSource);
 
-var _getMaxBlurKernelSize = __webpack_require__(/*! ./getMaxBlurKernelSize */ "./node_modules/pixi.js/lib/filters/blur/getMaxBlurKernelSize.js-exposed");
+var _getMaxBlurKernelSize = __webpack_require__(/*! ./getMaxBlurKernelSize */ "./node_modules/pixi.js/lib/filters/blur/getMaxBlurKernelSize.js");
 
 var _getMaxBlurKernelSize2 = _interopRequireDefault(_getMaxBlurKernelSize);
 
@@ -39519,19 +39072,6 @@ exports.default = BlurYFilter;
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/filters/blur/BlurYFilter.js-exposed":
-/*!**********************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/filters/blur/BlurYFilter.js-exposed ***!
-  \**********************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./BlurYFilter.js */ "./node_modules/pixi.js/lib/filters/blur/BlurYFilter.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/filters/blur/generateBlurFragSource.js":
 /*!*************************************************************************!*\
   !*** ./node_modules/pixi.js/lib/filters/blur/generateBlurFragSource.js ***!
@@ -39589,19 +39129,6 @@ function generateFragBlurSource(kernelSize) {
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/filters/blur/generateBlurFragSource.js-exposed":
-/*!*********************************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/filters/blur/generateBlurFragSource.js-exposed ***!
-  \*********************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./generateBlurFragSource.js */ "./node_modules/pixi.js/lib/filters/blur/generateBlurFragSource.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/filters/blur/generateBlurVertSource.js":
 /*!*************************************************************************!*\
   !*** ./node_modules/pixi.js/lib/filters/blur/generateBlurVertSource.js ***!
@@ -39656,19 +39183,6 @@ function generateVertBlurSource(kernelSize, x) {
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/filters/blur/generateBlurVertSource.js-exposed":
-/*!*********************************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/filters/blur/generateBlurVertSource.js-exposed ***!
-  \*********************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./generateBlurVertSource.js */ "./node_modules/pixi.js/lib/filters/blur/generateBlurVertSource.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/filters/blur/getMaxBlurKernelSize.js":
 /*!***********************************************************************!*\
   !*** ./node_modules/pixi.js/lib/filters/blur/getMaxBlurKernelSize.js ***!
@@ -39695,19 +39209,6 @@ function getMaxKernelSize(gl) {
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/filters/blur/getMaxBlurKernelSize.js-exposed":
-/*!*******************************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/filters/blur/getMaxBlurKernelSize.js-exposed ***!
-  \*******************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./getMaxBlurKernelSize.js */ "./node_modules/pixi.js/lib/filters/blur/getMaxBlurKernelSize.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/filters/colormatrix/ColorMatrixFilter.js":
 /*!***************************************************************************!*\
   !*** ./node_modules/pixi.js/lib/filters/colormatrix/ColorMatrixFilter.js ***!
@@ -39722,7 +39223,7 @@ exports.__esModule = true;
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _core = __webpack_require__(/*! ../../core */ "./node_modules/pixi.js/lib/core/index.js-exposed");
+var _core = __webpack_require__(/*! ../../core */ "./node_modules/pixi.js/lib/core/index.js");
 
 var core = _interopRequireWildcard(_core);
 
@@ -40269,19 +39770,6 @@ ColorMatrixFilter.prototype.grayscale = ColorMatrixFilter.prototype.greyscale;
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/filters/colormatrix/ColorMatrixFilter.js-exposed":
-/*!***********************************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/filters/colormatrix/ColorMatrixFilter.js-exposed ***!
-  \***********************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./ColorMatrixFilter.js */ "./node_modules/pixi.js/lib/filters/colormatrix/ColorMatrixFilter.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/filters/displacement/DisplacementFilter.js":
 /*!*****************************************************************************!*\
   !*** ./node_modules/pixi.js/lib/filters/displacement/DisplacementFilter.js ***!
@@ -40296,7 +39784,7 @@ exports.__esModule = true;
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _core = __webpack_require__(/*! ../../core */ "./node_modules/pixi.js/lib/core/index.js-exposed");
+var _core = __webpack_require__(/*! ../../core */ "./node_modules/pixi.js/lib/core/index.js");
 
 var core = _interopRequireWildcard(_core);
 
@@ -40400,19 +39888,6 @@ exports.default = DisplacementFilter;
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/filters/displacement/DisplacementFilter.js-exposed":
-/*!*************************************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/filters/displacement/DisplacementFilter.js-exposed ***!
-  \*************************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./DisplacementFilter.js */ "./node_modules/pixi.js/lib/filters/displacement/DisplacementFilter.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/filters/fxaa/FXAAFilter.js":
 /*!*************************************************************!*\
   !*** ./node_modules/pixi.js/lib/filters/fxaa/FXAAFilter.js ***!
@@ -40425,7 +39900,7 @@ module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./Displacement
 
 exports.__esModule = true;
 
-var _core = __webpack_require__(/*! ../../core */ "./node_modules/pixi.js/lib/core/index.js-exposed");
+var _core = __webpack_require__(/*! ../../core */ "./node_modules/pixi.js/lib/core/index.js");
 
 var core = _interopRequireWildcard(_core);
 
@@ -40477,19 +39952,6 @@ exports.default = FXAAFilter;
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/filters/fxaa/FXAAFilter.js-exposed":
-/*!*********************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/filters/fxaa/FXAAFilter.js-exposed ***!
-  \*********************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./FXAAFilter.js */ "./node_modules/pixi.js/lib/filters/fxaa/FXAAFilter.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/filters/index.js":
 /*!***************************************************!*\
   !*** ./node_modules/pixi.js/lib/filters/index.js ***!
@@ -40502,7 +39964,7 @@ module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./FXAAFilter.j
 
 exports.__esModule = true;
 
-var _FXAAFilter = __webpack_require__(/*! ./fxaa/FXAAFilter */ "./node_modules/pixi.js/lib/filters/fxaa/FXAAFilter.js-exposed");
+var _FXAAFilter = __webpack_require__(/*! ./fxaa/FXAAFilter */ "./node_modules/pixi.js/lib/filters/fxaa/FXAAFilter.js");
 
 Object.defineProperty(exports, 'FXAAFilter', {
   enumerable: true,
@@ -40511,7 +39973,7 @@ Object.defineProperty(exports, 'FXAAFilter', {
   }
 });
 
-var _NoiseFilter = __webpack_require__(/*! ./noise/NoiseFilter */ "./node_modules/pixi.js/lib/filters/noise/NoiseFilter.js-exposed");
+var _NoiseFilter = __webpack_require__(/*! ./noise/NoiseFilter */ "./node_modules/pixi.js/lib/filters/noise/NoiseFilter.js");
 
 Object.defineProperty(exports, 'NoiseFilter', {
   enumerable: true,
@@ -40520,7 +39982,7 @@ Object.defineProperty(exports, 'NoiseFilter', {
   }
 });
 
-var _DisplacementFilter = __webpack_require__(/*! ./displacement/DisplacementFilter */ "./node_modules/pixi.js/lib/filters/displacement/DisplacementFilter.js-exposed");
+var _DisplacementFilter = __webpack_require__(/*! ./displacement/DisplacementFilter */ "./node_modules/pixi.js/lib/filters/displacement/DisplacementFilter.js");
 
 Object.defineProperty(exports, 'DisplacementFilter', {
   enumerable: true,
@@ -40529,7 +39991,7 @@ Object.defineProperty(exports, 'DisplacementFilter', {
   }
 });
 
-var _BlurFilter = __webpack_require__(/*! ./blur/BlurFilter */ "./node_modules/pixi.js/lib/filters/blur/BlurFilter.js-exposed");
+var _BlurFilter = __webpack_require__(/*! ./blur/BlurFilter */ "./node_modules/pixi.js/lib/filters/blur/BlurFilter.js");
 
 Object.defineProperty(exports, 'BlurFilter', {
   enumerable: true,
@@ -40538,7 +40000,7 @@ Object.defineProperty(exports, 'BlurFilter', {
   }
 });
 
-var _BlurXFilter = __webpack_require__(/*! ./blur/BlurXFilter */ "./node_modules/pixi.js/lib/filters/blur/BlurXFilter.js-exposed");
+var _BlurXFilter = __webpack_require__(/*! ./blur/BlurXFilter */ "./node_modules/pixi.js/lib/filters/blur/BlurXFilter.js");
 
 Object.defineProperty(exports, 'BlurXFilter', {
   enumerable: true,
@@ -40547,7 +40009,7 @@ Object.defineProperty(exports, 'BlurXFilter', {
   }
 });
 
-var _BlurYFilter = __webpack_require__(/*! ./blur/BlurYFilter */ "./node_modules/pixi.js/lib/filters/blur/BlurYFilter.js-exposed");
+var _BlurYFilter = __webpack_require__(/*! ./blur/BlurYFilter */ "./node_modules/pixi.js/lib/filters/blur/BlurYFilter.js");
 
 Object.defineProperty(exports, 'BlurYFilter', {
   enumerable: true,
@@ -40556,7 +40018,7 @@ Object.defineProperty(exports, 'BlurYFilter', {
   }
 });
 
-var _ColorMatrixFilter = __webpack_require__(/*! ./colormatrix/ColorMatrixFilter */ "./node_modules/pixi.js/lib/filters/colormatrix/ColorMatrixFilter.js-exposed");
+var _ColorMatrixFilter = __webpack_require__(/*! ./colormatrix/ColorMatrixFilter */ "./node_modules/pixi.js/lib/filters/colormatrix/ColorMatrixFilter.js");
 
 Object.defineProperty(exports, 'ColorMatrixFilter', {
   enumerable: true,
@@ -40565,7 +40027,7 @@ Object.defineProperty(exports, 'ColorMatrixFilter', {
   }
 });
 
-var _AlphaFilter = __webpack_require__(/*! ./alpha/AlphaFilter */ "./node_modules/pixi.js/lib/filters/alpha/AlphaFilter.js-exposed");
+var _AlphaFilter = __webpack_require__(/*! ./alpha/AlphaFilter */ "./node_modules/pixi.js/lib/filters/alpha/AlphaFilter.js");
 
 Object.defineProperty(exports, 'AlphaFilter', {
   enumerable: true,
@@ -40576,19 +40038,6 @@ Object.defineProperty(exports, 'AlphaFilter', {
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 //# sourceMappingURL=index.js.map
-
-/***/ }),
-
-/***/ "./node_modules/pixi.js/lib/filters/index.js-exposed":
-/*!***********************************************************!*\
-  !*** ./node_modules/pixi.js/lib/filters/index.js-exposed ***!
-  \***********************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./index.js */ "./node_modules/pixi.js/lib/filters/index.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
 
 /***/ }),
 
@@ -40606,7 +40055,7 @@ exports.__esModule = true;
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _core = __webpack_require__(/*! ../../core */ "./node_modules/pixi.js/lib/core/index.js-exposed");
+var _core = __webpack_require__(/*! ../../core */ "./node_modules/pixi.js/lib/core/index.js");
 
 var core = _interopRequireWildcard(_core);
 
@@ -40699,19 +40148,6 @@ exports.default = NoiseFilter;
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/filters/noise/NoiseFilter.js-exposed":
-/*!***********************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/filters/noise/NoiseFilter.js-exposed ***!
-  \***********************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./NoiseFilter.js */ "./node_modules/pixi.js/lib/filters/noise/NoiseFilter.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/index.js":
 /*!*******************************************!*\
   !*** ./node_modules/pixi.js/lib/index.js ***!
@@ -40725,7 +40161,7 @@ module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./NoiseFilter.
 exports.__esModule = true;
 exports.loader = exports.prepare = exports.particles = exports.mesh = exports.loaders = exports.interaction = exports.filters = exports.extras = exports.extract = exports.accessibility = undefined;
 
-var _polyfill = __webpack_require__(/*! ./polyfill */ "./node_modules/pixi.js/lib/polyfill/index.js-exposed");
+var _polyfill = __webpack_require__(/*! ./polyfill */ "./node_modules/pixi.js/lib/polyfill/index.js");
 
 Object.keys(_polyfill).forEach(function (key) {
     if (key === "default" || key === "__esModule") return;
@@ -40737,7 +40173,7 @@ Object.keys(_polyfill).forEach(function (key) {
     });
 });
 
-var _core = __webpack_require__(/*! ./core */ "./node_modules/pixi.js/lib/core/index.js-exposed");
+var _core = __webpack_require__(/*! ./core */ "./node_modules/pixi.js/lib/core/index.js");
 
 Object.keys(_core).forEach(function (key) {
     if (key === "default" || key === "__esModule") return;
@@ -40749,43 +40185,43 @@ Object.keys(_core).forEach(function (key) {
     });
 });
 
-var _deprecation = __webpack_require__(/*! ./deprecation */ "./node_modules/pixi.js/lib/deprecation.js-exposed");
+var _deprecation = __webpack_require__(/*! ./deprecation */ "./node_modules/pixi.js/lib/deprecation.js");
 
 var _deprecation2 = _interopRequireDefault(_deprecation);
 
-var _accessibility = __webpack_require__(/*! ./accessibility */ "./node_modules/pixi.js/lib/accessibility/index.js-exposed");
+var _accessibility = __webpack_require__(/*! ./accessibility */ "./node_modules/pixi.js/lib/accessibility/index.js");
 
 var accessibility = _interopRequireWildcard(_accessibility);
 
-var _extract = __webpack_require__(/*! ./extract */ "./node_modules/pixi.js/lib/extract/index.js-exposed");
+var _extract = __webpack_require__(/*! ./extract */ "./node_modules/pixi.js/lib/extract/index.js");
 
 var extract = _interopRequireWildcard(_extract);
 
-var _extras = __webpack_require__(/*! ./extras */ "./node_modules/pixi.js/lib/extras/index.js-exposed");
+var _extras = __webpack_require__(/*! ./extras */ "./node_modules/pixi.js/lib/extras/index.js");
 
 var extras = _interopRequireWildcard(_extras);
 
-var _filters = __webpack_require__(/*! ./filters */ "./node_modules/pixi.js/lib/filters/index.js-exposed");
+var _filters = __webpack_require__(/*! ./filters */ "./node_modules/pixi.js/lib/filters/index.js");
 
 var filters = _interopRequireWildcard(_filters);
 
-var _interaction = __webpack_require__(/*! ./interaction */ "./node_modules/pixi.js/lib/interaction/index.js-exposed");
+var _interaction = __webpack_require__(/*! ./interaction */ "./node_modules/pixi.js/lib/interaction/index.js");
 
 var interaction = _interopRequireWildcard(_interaction);
 
-var _loaders = __webpack_require__(/*! ./loaders */ "./node_modules/pixi.js/lib/loaders/index.js-exposed");
+var _loaders = __webpack_require__(/*! ./loaders */ "./node_modules/pixi.js/lib/loaders/index.js");
 
 var loaders = _interopRequireWildcard(_loaders);
 
-var _mesh = __webpack_require__(/*! ./mesh */ "./node_modules/pixi.js/lib/mesh/index.js-exposed");
+var _mesh = __webpack_require__(/*! ./mesh */ "./node_modules/pixi.js/lib/mesh/index.js");
 
 var mesh = _interopRequireWildcard(_mesh);
 
-var _particles = __webpack_require__(/*! ./particles */ "./node_modules/pixi.js/lib/particles/index.js-exposed");
+var _particles = __webpack_require__(/*! ./particles */ "./node_modules/pixi.js/lib/particles/index.js");
 
 var particles = _interopRequireWildcard(_particles);
 
-var _prepare = __webpack_require__(/*! ./prepare */ "./node_modules/pixi.js/lib/prepare/index.js-exposed");
+var _prepare = __webpack_require__(/*! ./prepare */ "./node_modules/pixi.js/lib/prepare/index.js");
 
 var prepare = _interopRequireWildcard(_prepare);
 
@@ -40835,19 +40271,6 @@ global.PIXI = exports; // eslint-disable-line
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/index.js-exposed":
-/*!***************************************************!*\
-  !*** ./node_modules/pixi.js/lib/index.js-exposed ***!
-  \***************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./index.js */ "./node_modules/pixi.js/lib/index.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/interaction/InteractionData.js":
 /*!*****************************************************************!*\
   !*** ./node_modules/pixi.js/lib/interaction/InteractionData.js ***!
@@ -40862,7 +40285,7 @@ exports.__esModule = true;
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _core = __webpack_require__(/*! ../core */ "./node_modules/pixi.js/lib/core/index.js-exposed");
+var _core = __webpack_require__(/*! ../core */ "./node_modules/pixi.js/lib/core/index.js");
 
 var core = _interopRequireWildcard(_core);
 
@@ -41081,19 +40504,6 @@ exports.default = InteractionData;
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/interaction/InteractionData.js-exposed":
-/*!*************************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/interaction/InteractionData.js-exposed ***!
-  \*************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./InteractionData.js */ "./node_modules/pixi.js/lib/interaction/InteractionData.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/interaction/InteractionEvent.js":
 /*!******************************************************************!*\
   !*** ./node_modules/pixi.js/lib/interaction/InteractionEvent.js ***!
@@ -41187,19 +40597,6 @@ exports.default = InteractionEvent;
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/interaction/InteractionEvent.js-exposed":
-/*!**************************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/interaction/InteractionEvent.js-exposed ***!
-  \**************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./InteractionEvent.js */ "./node_modules/pixi.js/lib/interaction/InteractionEvent.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/interaction/InteractionManager.js":
 /*!********************************************************************!*\
   !*** ./node_modules/pixi.js/lib/interaction/InteractionManager.js ***!
@@ -41214,27 +40611,27 @@ exports.__esModule = true;
 
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
 
-var _core = __webpack_require__(/*! ../core */ "./node_modules/pixi.js/lib/core/index.js-exposed");
+var _core = __webpack_require__(/*! ../core */ "./node_modules/pixi.js/lib/core/index.js");
 
 var core = _interopRequireWildcard(_core);
 
-var _InteractionData = __webpack_require__(/*! ./InteractionData */ "./node_modules/pixi.js/lib/interaction/InteractionData.js-exposed");
+var _InteractionData = __webpack_require__(/*! ./InteractionData */ "./node_modules/pixi.js/lib/interaction/InteractionData.js");
 
 var _InteractionData2 = _interopRequireDefault(_InteractionData);
 
-var _InteractionEvent = __webpack_require__(/*! ./InteractionEvent */ "./node_modules/pixi.js/lib/interaction/InteractionEvent.js-exposed");
+var _InteractionEvent = __webpack_require__(/*! ./InteractionEvent */ "./node_modules/pixi.js/lib/interaction/InteractionEvent.js");
 
 var _InteractionEvent2 = _interopRequireDefault(_InteractionEvent);
 
-var _InteractionTrackingData = __webpack_require__(/*! ./InteractionTrackingData */ "./node_modules/pixi.js/lib/interaction/InteractionTrackingData.js-exposed");
+var _InteractionTrackingData = __webpack_require__(/*! ./InteractionTrackingData */ "./node_modules/pixi.js/lib/interaction/InteractionTrackingData.js");
 
 var _InteractionTrackingData2 = _interopRequireDefault(_InteractionTrackingData);
 
-var _eventemitter = __webpack_require__(/*! eventemitter3 */ "./node_modules/pixi.js/node_modules/eventemitter3/index.js-exposed");
+var _eventemitter = __webpack_require__(/*! eventemitter3 */ "./node_modules/pixi.js/node_modules/eventemitter3/index.js");
 
 var _eventemitter2 = _interopRequireDefault(_eventemitter);
 
-var _interactiveTarget = __webpack_require__(/*! ./interactiveTarget */ "./node_modules/pixi.js/lib/interaction/interactiveTarget.js-exposed");
+var _interactiveTarget = __webpack_require__(/*! ./interactiveTarget */ "./node_modules/pixi.js/lib/interaction/interactiveTarget.js");
 
 var _interactiveTarget2 = _interopRequireDefault(_interactiveTarget);
 
@@ -42992,19 +42389,6 @@ core.CanvasRenderer.registerPlugin('interaction', InteractionManager);
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/interaction/InteractionManager.js-exposed":
-/*!****************************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/interaction/InteractionManager.js-exposed ***!
-  \****************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./InteractionManager.js */ "./node_modules/pixi.js/lib/interaction/InteractionManager.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/interaction/InteractionTrackingData.js":
 /*!*************************************************************************!*\
   !*** ./node_modules/pixi.js/lib/interaction/InteractionTrackingData.js ***!
@@ -43191,19 +42575,6 @@ InteractionTrackingData.FLAGS = Object.freeze({
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/interaction/InteractionTrackingData.js-exposed":
-/*!*********************************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/interaction/InteractionTrackingData.js-exposed ***!
-  \*********************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./InteractionTrackingData.js */ "./node_modules/pixi.js/lib/interaction/InteractionTrackingData.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/interaction/index.js":
 /*!*******************************************************!*\
   !*** ./node_modules/pixi.js/lib/interaction/index.js ***!
@@ -43216,7 +42587,7 @@ module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./InteractionT
 
 exports.__esModule = true;
 
-var _InteractionData = __webpack_require__(/*! ./InteractionData */ "./node_modules/pixi.js/lib/interaction/InteractionData.js-exposed");
+var _InteractionData = __webpack_require__(/*! ./InteractionData */ "./node_modules/pixi.js/lib/interaction/InteractionData.js");
 
 Object.defineProperty(exports, 'InteractionData', {
   enumerable: true,
@@ -43225,7 +42596,7 @@ Object.defineProperty(exports, 'InteractionData', {
   }
 });
 
-var _InteractionManager = __webpack_require__(/*! ./InteractionManager */ "./node_modules/pixi.js/lib/interaction/InteractionManager.js-exposed");
+var _InteractionManager = __webpack_require__(/*! ./InteractionManager */ "./node_modules/pixi.js/lib/interaction/InteractionManager.js");
 
 Object.defineProperty(exports, 'InteractionManager', {
   enumerable: true,
@@ -43234,7 +42605,7 @@ Object.defineProperty(exports, 'InteractionManager', {
   }
 });
 
-var _interactiveTarget = __webpack_require__(/*! ./interactiveTarget */ "./node_modules/pixi.js/lib/interaction/interactiveTarget.js-exposed");
+var _interactiveTarget = __webpack_require__(/*! ./interactiveTarget */ "./node_modules/pixi.js/lib/interaction/interactiveTarget.js");
 
 Object.defineProperty(exports, 'interactiveTarget', {
   enumerable: true,
@@ -43243,7 +42614,7 @@ Object.defineProperty(exports, 'interactiveTarget', {
   }
 });
 
-var _InteractionTrackingData = __webpack_require__(/*! ./InteractionTrackingData */ "./node_modules/pixi.js/lib/interaction/InteractionTrackingData.js-exposed");
+var _InteractionTrackingData = __webpack_require__(/*! ./InteractionTrackingData */ "./node_modules/pixi.js/lib/interaction/InteractionTrackingData.js");
 
 Object.defineProperty(exports, 'InteractionTrackingData', {
   enumerable: true,
@@ -43252,7 +42623,7 @@ Object.defineProperty(exports, 'InteractionTrackingData', {
   }
 });
 
-var _InteractionEvent = __webpack_require__(/*! ./InteractionEvent */ "./node_modules/pixi.js/lib/interaction/InteractionEvent.js-exposed");
+var _InteractionEvent = __webpack_require__(/*! ./InteractionEvent */ "./node_modules/pixi.js/lib/interaction/InteractionEvent.js");
 
 Object.defineProperty(exports, 'InteractionEvent', {
   enumerable: true,
@@ -43263,19 +42634,6 @@ Object.defineProperty(exports, 'InteractionEvent', {
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 //# sourceMappingURL=index.js.map
-
-/***/ }),
-
-/***/ "./node_modules/pixi.js/lib/interaction/index.js-exposed":
-/*!***************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/interaction/index.js-exposed ***!
-  \***************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./index.js */ "./node_modules/pixi.js/lib/interaction/index.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
 
 /***/ }),
 
@@ -43406,19 +42764,6 @@ exports.default = {
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/interaction/interactiveTarget.js-exposed":
-/*!***************************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/interaction/interactiveTarget.js-exposed ***!
-  \***************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./interactiveTarget.js */ "./node_modules/pixi.js/lib/interaction/interactiveTarget.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/loaders/bitmapFontParser.js":
 /*!**************************************************************!*\
   !*** ./node_modules/pixi.js/lib/loaders/bitmapFontParser.js ***!
@@ -43530,7 +42875,7 @@ var path = _interopRequireWildcard(_path);
 
 var _resourceLoader = __webpack_require__(/*! resource-loader */ "./node_modules/resource-loader/lib/index.js");
 
-var _extras = __webpack_require__(/*! ../extras */ "./node_modules/pixi.js/lib/extras/index.js-exposed");
+var _extras = __webpack_require__(/*! ../extras */ "./node_modules/pixi.js/lib/extras/index.js");
 
 function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
 
@@ -43549,19 +42894,6 @@ function parse(resource, textures) {
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/loaders/bitmapFontParser.js-exposed":
-/*!**********************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/loaders/bitmapFontParser.js-exposed ***!
-  \**********************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./bitmapFontParser.js */ "./node_modules/pixi.js/lib/loaders/bitmapFontParser.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/loaders/index.js":
 /*!***************************************************!*\
   !*** ./node_modules/pixi.js/lib/loaders/index.js ***!
@@ -43575,7 +42907,7 @@ module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./bitmapFontPa
 exports.__esModule = true;
 exports.shared = exports.Resource = exports.textureParser = exports.getResourcePath = exports.spritesheetParser = exports.parseBitmapFontData = exports.bitmapFontParser = exports.Loader = undefined;
 
-var _bitmapFontParser = __webpack_require__(/*! ./bitmapFontParser */ "./node_modules/pixi.js/lib/loaders/bitmapFontParser.js-exposed");
+var _bitmapFontParser = __webpack_require__(/*! ./bitmapFontParser */ "./node_modules/pixi.js/lib/loaders/bitmapFontParser.js");
 
 Object.defineProperty(exports, 'bitmapFontParser', {
     enumerable: true,
@@ -43590,7 +42922,7 @@ Object.defineProperty(exports, 'parseBitmapFontData', {
     }
 });
 
-var _spritesheetParser = __webpack_require__(/*! ./spritesheetParser */ "./node_modules/pixi.js/lib/loaders/spritesheetParser.js-exposed");
+var _spritesheetParser = __webpack_require__(/*! ./spritesheetParser */ "./node_modules/pixi.js/lib/loaders/spritesheetParser.js");
 
 Object.defineProperty(exports, 'spritesheetParser', {
     enumerable: true,
@@ -43605,7 +42937,7 @@ Object.defineProperty(exports, 'getResourcePath', {
     }
 });
 
-var _textureParser = __webpack_require__(/*! ./textureParser */ "./node_modules/pixi.js/lib/loaders/textureParser.js-exposed");
+var _textureParser = __webpack_require__(/*! ./textureParser */ "./node_modules/pixi.js/lib/loaders/textureParser.js");
 
 Object.defineProperty(exports, 'textureParser', {
     enumerable: true,
@@ -43623,11 +42955,11 @@ Object.defineProperty(exports, 'Resource', {
     }
 });
 
-var _Application = __webpack_require__(/*! ../core/Application */ "./node_modules/pixi.js/lib/core/Application.js-exposed");
+var _Application = __webpack_require__(/*! ../core/Application */ "./node_modules/pixi.js/lib/core/Application.js");
 
 var _Application2 = _interopRequireDefault(_Application);
 
-var _loader = __webpack_require__(/*! ./loader */ "./node_modules/pixi.js/lib/loaders/loader.js-exposed");
+var _loader = __webpack_require__(/*! ./loader */ "./node_modules/pixi.js/lib/loaders/loader.js");
 
 var _loader2 = _interopRequireDefault(_loader);
 
@@ -43700,19 +43032,6 @@ AppPrototype.destroy = function destroy(removeView, stageOptions) {
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/loaders/index.js-exposed":
-/*!***********************************************************!*\
-  !*** ./node_modules/pixi.js/lib/loaders/index.js-exposed ***!
-  \***********************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./index.js */ "./node_modules/pixi.js/lib/loaders/index.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/loaders/loader.js":
 /*!****************************************************!*\
   !*** ./node_modules/pixi.js/lib/loaders/loader.js ***!
@@ -43731,19 +43050,19 @@ var _resourceLoader2 = _interopRequireDefault(_resourceLoader);
 
 var _blob = __webpack_require__(/*! resource-loader/lib/middlewares/parsing/blob */ "./node_modules/resource-loader/lib/middlewares/parsing/blob.js");
 
-var _eventemitter = __webpack_require__(/*! eventemitter3 */ "./node_modules/pixi.js/node_modules/eventemitter3/index.js-exposed");
+var _eventemitter = __webpack_require__(/*! eventemitter3 */ "./node_modules/pixi.js/node_modules/eventemitter3/index.js");
 
 var _eventemitter2 = _interopRequireDefault(_eventemitter);
 
-var _textureParser = __webpack_require__(/*! ./textureParser */ "./node_modules/pixi.js/lib/loaders/textureParser.js-exposed");
+var _textureParser = __webpack_require__(/*! ./textureParser */ "./node_modules/pixi.js/lib/loaders/textureParser.js");
 
 var _textureParser2 = _interopRequireDefault(_textureParser);
 
-var _spritesheetParser = __webpack_require__(/*! ./spritesheetParser */ "./node_modules/pixi.js/lib/loaders/spritesheetParser.js-exposed");
+var _spritesheetParser = __webpack_require__(/*! ./spritesheetParser */ "./node_modules/pixi.js/lib/loaders/spritesheetParser.js");
 
 var _spritesheetParser2 = _interopRequireDefault(_spritesheetParser);
 
-var _bitmapFontParser = __webpack_require__(/*! ./bitmapFontParser */ "./node_modules/pixi.js/lib/loaders/bitmapFontParser.js-exposed");
+var _bitmapFontParser = __webpack_require__(/*! ./bitmapFontParser */ "./node_modules/pixi.js/lib/loaders/bitmapFontParser.js");
 
 var _bitmapFontParser2 = _interopRequireDefault(_bitmapFontParser);
 
@@ -43894,19 +43213,6 @@ Resource.setExtensionXhrType('fnt', Resource.XHR_RESPONSE_TYPE.DOCUMENT);
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/loaders/loader.js-exposed":
-/*!************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/loaders/loader.js-exposed ***!
-  \************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./loader.js */ "./node_modules/pixi.js/lib/loaders/loader.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/loaders/spritesheetParser.js":
 /*!***************************************************************!*\
   !*** ./node_modules/pixi.js/lib/loaders/spritesheetParser.js ***!
@@ -43965,7 +43271,7 @@ var _url = __webpack_require__(/*! url */ "./node_modules/url/url.js");
 
 var _url2 = _interopRequireDefault(_url);
 
-var _core = __webpack_require__(/*! ../core */ "./node_modules/pixi.js/lib/core/index.js-exposed");
+var _core = __webpack_require__(/*! ../core */ "./node_modules/pixi.js/lib/core/index.js");
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -43978,19 +43284,6 @@ function getResourcePath(resource, baseUrl) {
     return _url2.default.resolve(resource.url.replace(baseUrl, ''), resource.data.meta.image);
 }
 //# sourceMappingURL=spritesheetParser.js.map
-
-/***/ }),
-
-/***/ "./node_modules/pixi.js/lib/loaders/spritesheetParser.js-exposed":
-/*!***********************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/loaders/spritesheetParser.js-exposed ***!
-  \***********************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./spritesheetParser.js */ "./node_modules/pixi.js/lib/loaders/spritesheetParser.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
 
 /***/ }),
 
@@ -44018,25 +43311,12 @@ exports.default = function () {
 
 var _resourceLoader = __webpack_require__(/*! resource-loader */ "./node_modules/resource-loader/lib/index.js");
 
-var _Texture = __webpack_require__(/*! ../core/textures/Texture */ "./node_modules/pixi.js/lib/core/textures/Texture.js-exposed");
+var _Texture = __webpack_require__(/*! ../core/textures/Texture */ "./node_modules/pixi.js/lib/core/textures/Texture.js");
 
 var _Texture2 = _interopRequireDefault(_Texture);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 //# sourceMappingURL=textureParser.js.map
-
-/***/ }),
-
-/***/ "./node_modules/pixi.js/lib/loaders/textureParser.js-exposed":
-/*!*******************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/loaders/textureParser.js-exposed ***!
-  \*******************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./textureParser.js */ "./node_modules/pixi.js/lib/loaders/textureParser.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
 
 /***/ }),
 
@@ -44054,11 +43334,11 @@ exports.__esModule = true;
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _core = __webpack_require__(/*! ../core */ "./node_modules/pixi.js/lib/core/index.js-exposed");
+var _core = __webpack_require__(/*! ../core */ "./node_modules/pixi.js/lib/core/index.js");
 
 var core = _interopRequireWildcard(_core);
 
-var _Texture = __webpack_require__(/*! ../core/textures/Texture */ "./node_modules/pixi.js/lib/core/textures/Texture.js-exposed");
+var _Texture = __webpack_require__(/*! ../core/textures/Texture */ "./node_modules/pixi.js/lib/core/textures/Texture.js");
 
 var _Texture2 = _interopRequireDefault(_Texture);
 
@@ -44481,19 +43761,6 @@ Mesh.DRAW_MODES = {
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/mesh/Mesh.js-exposed":
-/*!*******************************************************!*\
-  !*** ./node_modules/pixi.js/lib/mesh/Mesh.js-exposed ***!
-  \*******************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./Mesh.js */ "./node_modules/pixi.js/lib/mesh/Mesh.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/mesh/NineSlicePlane.js":
 /*!*********************************************************!*\
   !*** ./node_modules/pixi.js/lib/mesh/NineSlicePlane.js ***!
@@ -44508,7 +43775,7 @@ exports.__esModule = true;
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _Plane2 = __webpack_require__(/*! ./Plane */ "./node_modules/pixi.js/lib/mesh/Plane.js-exposed");
+var _Plane2 = __webpack_require__(/*! ./Plane */ "./node_modules/pixi.js/lib/mesh/Plane.js");
 
 var _Plane3 = _interopRequireDefault(_Plane2);
 
@@ -44897,19 +44164,6 @@ exports.default = NineSlicePlane;
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/mesh/NineSlicePlane.js-exposed":
-/*!*****************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/mesh/NineSlicePlane.js-exposed ***!
-  \*****************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./NineSlicePlane.js */ "./node_modules/pixi.js/lib/mesh/NineSlicePlane.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/mesh/Plane.js":
 /*!************************************************!*\
   !*** ./node_modules/pixi.js/lib/mesh/Plane.js ***!
@@ -44922,7 +44176,7 @@ module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./NineSlicePla
 
 exports.__esModule = true;
 
-var _Mesh2 = __webpack_require__(/*! ./Mesh */ "./node_modules/pixi.js/lib/mesh/Mesh.js-exposed");
+var _Mesh2 = __webpack_require__(/*! ./Mesh */ "./node_modules/pixi.js/lib/mesh/Mesh.js");
 
 var _Mesh3 = _interopRequireDefault(_Mesh2);
 
@@ -45061,19 +44315,6 @@ exports.default = Plane;
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/mesh/Plane.js-exposed":
-/*!********************************************************!*\
-  !*** ./node_modules/pixi.js/lib/mesh/Plane.js-exposed ***!
-  \********************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./Plane.js */ "./node_modules/pixi.js/lib/mesh/Plane.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/mesh/Rope.js":
 /*!***********************************************!*\
   !*** ./node_modules/pixi.js/lib/mesh/Rope.js ***!
@@ -45086,7 +44327,7 @@ module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./Plane.js */ 
 
 exports.__esModule = true;
 
-var _Mesh2 = __webpack_require__(/*! ./Mesh */ "./node_modules/pixi.js/lib/mesh/Mesh.js-exposed");
+var _Mesh2 = __webpack_require__(/*! ./Mesh */ "./node_modules/pixi.js/lib/mesh/Mesh.js");
 
 var _Mesh3 = _interopRequireDefault(_Mesh2);
 
@@ -45320,19 +44561,6 @@ exports.default = Rope;
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/mesh/Rope.js-exposed":
-/*!*******************************************************!*\
-  !*** ./node_modules/pixi.js/lib/mesh/Rope.js-exposed ***!
-  \*******************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./Rope.js */ "./node_modules/pixi.js/lib/mesh/Rope.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/mesh/canvas/CanvasMeshRenderer.js":
 /*!********************************************************************!*\
   !*** ./node_modules/pixi.js/lib/mesh/canvas/CanvasMeshRenderer.js ***!
@@ -45345,11 +44573,11 @@ module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./Rope.js */ "
 
 exports.__esModule = true;
 
-var _core = __webpack_require__(/*! ../../core */ "./node_modules/pixi.js/lib/core/index.js-exposed");
+var _core = __webpack_require__(/*! ../../core */ "./node_modules/pixi.js/lib/core/index.js");
 
 var core = _interopRequireWildcard(_core);
 
-var _Mesh = __webpack_require__(/*! ../Mesh */ "./node_modules/pixi.js/lib/mesh/Mesh.js-exposed");
+var _Mesh = __webpack_require__(/*! ../Mesh */ "./node_modules/pixi.js/lib/mesh/Mesh.js");
 
 var _Mesh2 = _interopRequireDefault(_Mesh);
 
@@ -45629,19 +44857,6 @@ core.CanvasRenderer.registerPlugin('mesh', MeshSpriteRenderer);
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/mesh/canvas/CanvasMeshRenderer.js-exposed":
-/*!****************************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/mesh/canvas/CanvasMeshRenderer.js-exposed ***!
-  \****************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./CanvasMeshRenderer.js */ "./node_modules/pixi.js/lib/mesh/canvas/CanvasMeshRenderer.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/mesh/index.js":
 /*!************************************************!*\
   !*** ./node_modules/pixi.js/lib/mesh/index.js ***!
@@ -45654,7 +44869,7 @@ module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./CanvasMeshRe
 
 exports.__esModule = true;
 
-var _Mesh = __webpack_require__(/*! ./Mesh */ "./node_modules/pixi.js/lib/mesh/Mesh.js-exposed");
+var _Mesh = __webpack_require__(/*! ./Mesh */ "./node_modules/pixi.js/lib/mesh/Mesh.js");
 
 Object.defineProperty(exports, 'Mesh', {
   enumerable: true,
@@ -45663,7 +44878,7 @@ Object.defineProperty(exports, 'Mesh', {
   }
 });
 
-var _MeshRenderer = __webpack_require__(/*! ./webgl/MeshRenderer */ "./node_modules/pixi.js/lib/mesh/webgl/MeshRenderer.js-exposed");
+var _MeshRenderer = __webpack_require__(/*! ./webgl/MeshRenderer */ "./node_modules/pixi.js/lib/mesh/webgl/MeshRenderer.js");
 
 Object.defineProperty(exports, 'MeshRenderer', {
   enumerable: true,
@@ -45672,7 +44887,7 @@ Object.defineProperty(exports, 'MeshRenderer', {
   }
 });
 
-var _CanvasMeshRenderer = __webpack_require__(/*! ./canvas/CanvasMeshRenderer */ "./node_modules/pixi.js/lib/mesh/canvas/CanvasMeshRenderer.js-exposed");
+var _CanvasMeshRenderer = __webpack_require__(/*! ./canvas/CanvasMeshRenderer */ "./node_modules/pixi.js/lib/mesh/canvas/CanvasMeshRenderer.js");
 
 Object.defineProperty(exports, 'CanvasMeshRenderer', {
   enumerable: true,
@@ -45681,7 +44896,7 @@ Object.defineProperty(exports, 'CanvasMeshRenderer', {
   }
 });
 
-var _Plane = __webpack_require__(/*! ./Plane */ "./node_modules/pixi.js/lib/mesh/Plane.js-exposed");
+var _Plane = __webpack_require__(/*! ./Plane */ "./node_modules/pixi.js/lib/mesh/Plane.js");
 
 Object.defineProperty(exports, 'Plane', {
   enumerable: true,
@@ -45690,7 +44905,7 @@ Object.defineProperty(exports, 'Plane', {
   }
 });
 
-var _NineSlicePlane = __webpack_require__(/*! ./NineSlicePlane */ "./node_modules/pixi.js/lib/mesh/NineSlicePlane.js-exposed");
+var _NineSlicePlane = __webpack_require__(/*! ./NineSlicePlane */ "./node_modules/pixi.js/lib/mesh/NineSlicePlane.js");
 
 Object.defineProperty(exports, 'NineSlicePlane', {
   enumerable: true,
@@ -45699,7 +44914,7 @@ Object.defineProperty(exports, 'NineSlicePlane', {
   }
 });
 
-var _Rope = __webpack_require__(/*! ./Rope */ "./node_modules/pixi.js/lib/mesh/Rope.js-exposed");
+var _Rope = __webpack_require__(/*! ./Rope */ "./node_modules/pixi.js/lib/mesh/Rope.js");
 
 Object.defineProperty(exports, 'Rope', {
   enumerable: true,
@@ -45710,19 +44925,6 @@ Object.defineProperty(exports, 'Rope', {
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 //# sourceMappingURL=index.js.map
-
-/***/ }),
-
-/***/ "./node_modules/pixi.js/lib/mesh/index.js-exposed":
-/*!********************************************************!*\
-  !*** ./node_modules/pixi.js/lib/mesh/index.js-exposed ***!
-  \********************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./index.js */ "./node_modules/pixi.js/lib/mesh/index.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
 
 /***/ }),
 
@@ -45738,7 +44940,7 @@ module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./index.js */ 
 
 exports.__esModule = true;
 
-var _core = __webpack_require__(/*! ../../core */ "./node_modules/pixi.js/lib/core/index.js-exposed");
+var _core = __webpack_require__(/*! ../../core */ "./node_modules/pixi.js/lib/core/index.js");
 
 var core = _interopRequireWildcard(_core);
 
@@ -45746,7 +44948,7 @@ var _pixiGlCore = __webpack_require__(/*! pixi-gl-core */ "./node_modules/pixi-g
 
 var _pixiGlCore2 = _interopRequireDefault(_pixiGlCore);
 
-var _Mesh = __webpack_require__(/*! ../Mesh */ "./node_modules/pixi.js/lib/mesh/Mesh.js-exposed");
+var _Mesh = __webpack_require__(/*! ../Mesh */ "./node_modules/pixi.js/lib/mesh/Mesh.js");
 
 var _Mesh2 = _interopRequireDefault(_Mesh);
 
@@ -45891,19 +45093,6 @@ core.WebGLRenderer.registerPlugin('mesh', MeshRenderer);
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/mesh/webgl/MeshRenderer.js-exposed":
-/*!*********************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/mesh/webgl/MeshRenderer.js-exposed ***!
-  \*********************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./MeshRenderer.js */ "./node_modules/pixi.js/lib/mesh/webgl/MeshRenderer.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/particles/ParticleContainer.js":
 /*!*****************************************************************!*\
   !*** ./node_modules/pixi.js/lib/particles/ParticleContainer.js ***!
@@ -45918,11 +45107,11 @@ exports.__esModule = true;
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _core = __webpack_require__(/*! ../core */ "./node_modules/pixi.js/lib/core/index.js-exposed");
+var _core = __webpack_require__(/*! ../core */ "./node_modules/pixi.js/lib/core/index.js");
 
 var core = _interopRequireWildcard(_core);
 
-var _utils = __webpack_require__(/*! ../core/utils */ "./node_modules/pixi.js/lib/core/utils/index.js-exposed");
+var _utils = __webpack_require__(/*! ../core/utils */ "./node_modules/pixi.js/lib/core/utils/index.js");
 
 function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
 
@@ -46304,19 +45493,6 @@ exports.default = ParticleContainer;
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/particles/ParticleContainer.js-exposed":
-/*!*************************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/particles/ParticleContainer.js-exposed ***!
-  \*************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./ParticleContainer.js */ "./node_modules/pixi.js/lib/particles/ParticleContainer.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/particles/index.js":
 /*!*****************************************************!*\
   !*** ./node_modules/pixi.js/lib/particles/index.js ***!
@@ -46329,7 +45505,7 @@ module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./ParticleCont
 
 exports.__esModule = true;
 
-var _ParticleContainer = __webpack_require__(/*! ./ParticleContainer */ "./node_modules/pixi.js/lib/particles/ParticleContainer.js-exposed");
+var _ParticleContainer = __webpack_require__(/*! ./ParticleContainer */ "./node_modules/pixi.js/lib/particles/ParticleContainer.js");
 
 Object.defineProperty(exports, 'ParticleContainer', {
   enumerable: true,
@@ -46338,7 +45514,7 @@ Object.defineProperty(exports, 'ParticleContainer', {
   }
 });
 
-var _ParticleRenderer = __webpack_require__(/*! ./webgl/ParticleRenderer */ "./node_modules/pixi.js/lib/particles/webgl/ParticleRenderer.js-exposed");
+var _ParticleRenderer = __webpack_require__(/*! ./webgl/ParticleRenderer */ "./node_modules/pixi.js/lib/particles/webgl/ParticleRenderer.js");
 
 Object.defineProperty(exports, 'ParticleRenderer', {
   enumerable: true,
@@ -46349,19 +45525,6 @@ Object.defineProperty(exports, 'ParticleRenderer', {
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 //# sourceMappingURL=index.js.map
-
-/***/ }),
-
-/***/ "./node_modules/pixi.js/lib/particles/index.js-exposed":
-/*!*************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/particles/index.js-exposed ***!
-  \*************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./index.js */ "./node_modules/pixi.js/lib/particles/index.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
 
 /***/ }),
 
@@ -46381,7 +45544,7 @@ var _pixiGlCore = __webpack_require__(/*! pixi-gl-core */ "./node_modules/pixi-g
 
 var _pixiGlCore2 = _interopRequireDefault(_pixiGlCore);
 
-var _createIndicesForQuads = __webpack_require__(/*! ../../core/utils/createIndicesForQuads */ "./node_modules/pixi.js/lib/core/utils/createIndicesForQuads.js-exposed");
+var _createIndicesForQuads = __webpack_require__(/*! ../../core/utils/createIndicesForQuads */ "./node_modules/pixi.js/lib/core/utils/createIndicesForQuads.js");
 
 var _createIndicesForQuads2 = _interopRequireDefault(_createIndicesForQuads);
 
@@ -46624,19 +45787,6 @@ exports.default = ParticleBuffer;
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/particles/webgl/ParticleBuffer.js-exposed":
-/*!****************************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/particles/webgl/ParticleBuffer.js-exposed ***!
-  \****************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./ParticleBuffer.js */ "./node_modules/pixi.js/lib/particles/webgl/ParticleBuffer.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/particles/webgl/ParticleRenderer.js":
 /*!**********************************************************************!*\
   !*** ./node_modules/pixi.js/lib/particles/webgl/ParticleRenderer.js ***!
@@ -46649,19 +45799,19 @@ module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./ParticleBuff
 
 exports.__esModule = true;
 
-var _core = __webpack_require__(/*! ../../core */ "./node_modules/pixi.js/lib/core/index.js-exposed");
+var _core = __webpack_require__(/*! ../../core */ "./node_modules/pixi.js/lib/core/index.js");
 
 var core = _interopRequireWildcard(_core);
 
-var _ParticleShader = __webpack_require__(/*! ./ParticleShader */ "./node_modules/pixi.js/lib/particles/webgl/ParticleShader.js-exposed");
+var _ParticleShader = __webpack_require__(/*! ./ParticleShader */ "./node_modules/pixi.js/lib/particles/webgl/ParticleShader.js");
 
 var _ParticleShader2 = _interopRequireDefault(_ParticleShader);
 
-var _ParticleBuffer = __webpack_require__(/*! ./ParticleBuffer */ "./node_modules/pixi.js/lib/particles/webgl/ParticleBuffer.js-exposed");
+var _ParticleBuffer = __webpack_require__(/*! ./ParticleBuffer */ "./node_modules/pixi.js/lib/particles/webgl/ParticleBuffer.js");
 
 var _ParticleBuffer2 = _interopRequireDefault(_ParticleBuffer);
 
-var _utils = __webpack_require__(/*! ../../core/utils */ "./node_modules/pixi.js/lib/core/utils/index.js-exposed");
+var _utils = __webpack_require__(/*! ../../core/utils */ "./node_modules/pixi.js/lib/core/utils/index.js");
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -47128,19 +46278,6 @@ core.WebGLRenderer.registerPlugin('particle', ParticleRenderer);
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/particles/webgl/ParticleRenderer.js-exposed":
-/*!******************************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/particles/webgl/ParticleRenderer.js-exposed ***!
-  \******************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./ParticleRenderer.js */ "./node_modules/pixi.js/lib/particles/webgl/ParticleRenderer.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/particles/webgl/ParticleShader.js":
 /*!********************************************************************!*\
   !*** ./node_modules/pixi.js/lib/particles/webgl/ParticleShader.js ***!
@@ -47153,7 +46290,7 @@ module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./ParticleRend
 
 exports.__esModule = true;
 
-var _Shader2 = __webpack_require__(/*! ../../core/Shader */ "./node_modules/pixi.js/lib/core/Shader.js-exposed");
+var _Shader2 = __webpack_require__(/*! ../../core/Shader */ "./node_modules/pixi.js/lib/core/Shader.js");
 
 var _Shader3 = _interopRequireDefault(_Shader2);
 
@@ -47194,19 +46331,6 @@ exports.default = ParticleShader;
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/particles/webgl/ParticleShader.js-exposed":
-/*!****************************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/particles/webgl/ParticleShader.js-exposed ***!
-  \****************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./ParticleShader.js */ "./node_modules/pixi.js/lib/particles/webgl/ParticleShader.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/polyfill/Math.sign.js":
 /*!********************************************************!*\
   !*** ./node_modules/pixi.js/lib/polyfill/Math.sign.js ***!
@@ -47235,19 +46359,6 @@ if (!Math.sign) {
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/polyfill/Math.sign.js-exposed":
-/*!****************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/polyfill/Math.sign.js-exposed ***!
-  \****************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./Math.sign.js */ "./node_modules/pixi.js/lib/polyfill/Math.sign.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/polyfill/Number.isInteger.js":
 /*!***************************************************************!*\
   !*** ./node_modules/pixi.js/lib/polyfill/Number.isInteger.js ***!
@@ -47267,19 +46378,6 @@ if (!Number.isInteger) {
     };
 }
 //# sourceMappingURL=Number.isInteger.js.map
-
-/***/ }),
-
-/***/ "./node_modules/pixi.js/lib/polyfill/Number.isInteger.js-exposed":
-/*!***********************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/polyfill/Number.isInteger.js-exposed ***!
-  \***********************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./Number.isInteger.js */ "./node_modules/pixi.js/lib/polyfill/Number.isInteger.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
 
 /***/ }),
 
@@ -47308,19 +46406,6 @@ if (!Object.assign) {
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/polyfill/Object.assign.js-exposed":
-/*!********************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/polyfill/Object.assign.js-exposed ***!
-  \********************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./Object.assign.js */ "./node_modules/pixi.js/lib/polyfill/Object.assign.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/polyfill/index.js":
 /*!****************************************************!*\
   !*** ./node_modules/pixi.js/lib/polyfill/index.js ***!
@@ -47331,13 +46416,13 @@ module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./Object.assig
 "use strict";
 
 
-__webpack_require__(/*! ./Object.assign */ "./node_modules/pixi.js/lib/polyfill/Object.assign.js-exposed");
+__webpack_require__(/*! ./Object.assign */ "./node_modules/pixi.js/lib/polyfill/Object.assign.js");
 
-__webpack_require__(/*! ./requestAnimationFrame */ "./node_modules/pixi.js/lib/polyfill/requestAnimationFrame.js-exposed");
+__webpack_require__(/*! ./requestAnimationFrame */ "./node_modules/pixi.js/lib/polyfill/requestAnimationFrame.js");
 
-__webpack_require__(/*! ./Math.sign */ "./node_modules/pixi.js/lib/polyfill/Math.sign.js-exposed");
+__webpack_require__(/*! ./Math.sign */ "./node_modules/pixi.js/lib/polyfill/Math.sign.js");
 
-__webpack_require__(/*! ./Number.isInteger */ "./node_modules/pixi.js/lib/polyfill/Number.isInteger.js-exposed");
+__webpack_require__(/*! ./Number.isInteger */ "./node_modules/pixi.js/lib/polyfill/Number.isInteger.js");
 
 if (!window.ArrayBuffer) {
     window.ArrayBuffer = Array;
@@ -47355,19 +46440,6 @@ if (!window.Uint16Array) {
     window.Uint16Array = Array;
 }
 //# sourceMappingURL=index.js.map
-
-/***/ }),
-
-/***/ "./node_modules/pixi.js/lib/polyfill/index.js-exposed":
-/*!************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/polyfill/index.js-exposed ***!
-  \************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./index.js */ "./node_modules/pixi.js/lib/polyfill/index.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
 
 /***/ }),
 
@@ -47457,19 +46529,6 @@ if (!global.cancelAnimationFrame) {
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/polyfill/requestAnimationFrame.js-exposed":
-/*!****************************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/polyfill/requestAnimationFrame.js-exposed ***!
-  \****************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./requestAnimationFrame.js */ "./node_modules/pixi.js/lib/polyfill/requestAnimationFrame.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/prepare/BasePrepare.js":
 /*!*********************************************************!*\
   !*** ./node_modules/pixi.js/lib/prepare/BasePrepare.js ***!
@@ -47482,11 +46541,11 @@ module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./requestAnima
 
 exports.__esModule = true;
 
-var _core = __webpack_require__(/*! ../core */ "./node_modules/pixi.js/lib/core/index.js-exposed");
+var _core = __webpack_require__(/*! ../core */ "./node_modules/pixi.js/lib/core/index.js");
 
 var core = _interopRequireWildcard(_core);
 
-var _CountLimiter = __webpack_require__(/*! ./limiters/CountLimiter */ "./node_modules/pixi.js/lib/prepare/limiters/CountLimiter.js-exposed");
+var _CountLimiter = __webpack_require__(/*! ./limiters/CountLimiter */ "./node_modules/pixi.js/lib/prepare/limiters/CountLimiter.js");
 
 var _CountLimiter2 = _interopRequireDefault(_CountLimiter);
 
@@ -47968,19 +47027,6 @@ function findTextStyle(item, queue) {
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/prepare/BasePrepare.js-exposed":
-/*!*****************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/prepare/BasePrepare.js-exposed ***!
-  \*****************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./BasePrepare.js */ "./node_modules/pixi.js/lib/prepare/BasePrepare.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/prepare/canvas/CanvasPrepare.js":
 /*!******************************************************************!*\
   !*** ./node_modules/pixi.js/lib/prepare/canvas/CanvasPrepare.js ***!
@@ -47993,11 +47039,11 @@ module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./BasePrepare.
 
 exports.__esModule = true;
 
-var _core = __webpack_require__(/*! ../../core */ "./node_modules/pixi.js/lib/core/index.js-exposed");
+var _core = __webpack_require__(/*! ../../core */ "./node_modules/pixi.js/lib/core/index.js");
 
 var core = _interopRequireWildcard(_core);
 
-var _BasePrepare2 = __webpack_require__(/*! ../BasePrepare */ "./node_modules/pixi.js/lib/prepare/BasePrepare.js-exposed");
+var _BasePrepare2 = __webpack_require__(/*! ../BasePrepare */ "./node_modules/pixi.js/lib/prepare/BasePrepare.js");
 
 var _BasePrepare3 = _interopRequireDefault(_BasePrepare2);
 
@@ -48111,19 +47157,6 @@ core.CanvasRenderer.registerPlugin('prepare', CanvasPrepare);
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/prepare/canvas/CanvasPrepare.js-exposed":
-/*!**************************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/prepare/canvas/CanvasPrepare.js-exposed ***!
-  \**************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./CanvasPrepare.js */ "./node_modules/pixi.js/lib/prepare/canvas/CanvasPrepare.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/prepare/index.js":
 /*!***************************************************!*\
   !*** ./node_modules/pixi.js/lib/prepare/index.js ***!
@@ -48136,7 +47169,7 @@ module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./CanvasPrepar
 
 exports.__esModule = true;
 
-var _WebGLPrepare = __webpack_require__(/*! ./webgl/WebGLPrepare */ "./node_modules/pixi.js/lib/prepare/webgl/WebGLPrepare.js-exposed");
+var _WebGLPrepare = __webpack_require__(/*! ./webgl/WebGLPrepare */ "./node_modules/pixi.js/lib/prepare/webgl/WebGLPrepare.js");
 
 Object.defineProperty(exports, 'webgl', {
   enumerable: true,
@@ -48145,7 +47178,7 @@ Object.defineProperty(exports, 'webgl', {
   }
 });
 
-var _CanvasPrepare = __webpack_require__(/*! ./canvas/CanvasPrepare */ "./node_modules/pixi.js/lib/prepare/canvas/CanvasPrepare.js-exposed");
+var _CanvasPrepare = __webpack_require__(/*! ./canvas/CanvasPrepare */ "./node_modules/pixi.js/lib/prepare/canvas/CanvasPrepare.js");
 
 Object.defineProperty(exports, 'canvas', {
   enumerable: true,
@@ -48154,7 +47187,7 @@ Object.defineProperty(exports, 'canvas', {
   }
 });
 
-var _BasePrepare = __webpack_require__(/*! ./BasePrepare */ "./node_modules/pixi.js/lib/prepare/BasePrepare.js-exposed");
+var _BasePrepare = __webpack_require__(/*! ./BasePrepare */ "./node_modules/pixi.js/lib/prepare/BasePrepare.js");
 
 Object.defineProperty(exports, 'BasePrepare', {
   enumerable: true,
@@ -48163,7 +47196,7 @@ Object.defineProperty(exports, 'BasePrepare', {
   }
 });
 
-var _CountLimiter = __webpack_require__(/*! ./limiters/CountLimiter */ "./node_modules/pixi.js/lib/prepare/limiters/CountLimiter.js-exposed");
+var _CountLimiter = __webpack_require__(/*! ./limiters/CountLimiter */ "./node_modules/pixi.js/lib/prepare/limiters/CountLimiter.js");
 
 Object.defineProperty(exports, 'CountLimiter', {
   enumerable: true,
@@ -48172,7 +47205,7 @@ Object.defineProperty(exports, 'CountLimiter', {
   }
 });
 
-var _TimeLimiter = __webpack_require__(/*! ./limiters/TimeLimiter */ "./node_modules/pixi.js/lib/prepare/limiters/TimeLimiter.js-exposed");
+var _TimeLimiter = __webpack_require__(/*! ./limiters/TimeLimiter */ "./node_modules/pixi.js/lib/prepare/limiters/TimeLimiter.js");
 
 Object.defineProperty(exports, 'TimeLimiter', {
   enumerable: true,
@@ -48183,19 +47216,6 @@ Object.defineProperty(exports, 'TimeLimiter', {
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 //# sourceMappingURL=index.js.map
-
-/***/ }),
-
-/***/ "./node_modules/pixi.js/lib/prepare/index.js-exposed":
-/*!***********************************************************!*\
-  !*** ./node_modules/pixi.js/lib/prepare/index.js-exposed ***!
-  \***********************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./index.js */ "./node_modules/pixi.js/lib/prepare/index.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
 
 /***/ }),
 
@@ -48267,19 +47287,6 @@ exports.default = CountLimiter;
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/prepare/limiters/CountLimiter.js-exposed":
-/*!***************************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/prepare/limiters/CountLimiter.js-exposed ***!
-  \***************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./CountLimiter.js */ "./node_modules/pixi.js/lib/prepare/limiters/CountLimiter.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/prepare/limiters/TimeLimiter.js":
 /*!******************************************************************!*\
   !*** ./node_modules/pixi.js/lib/prepare/limiters/TimeLimiter.js ***!
@@ -48348,19 +47355,6 @@ exports.default = TimeLimiter;
 
 /***/ }),
 
-/***/ "./node_modules/pixi.js/lib/prepare/limiters/TimeLimiter.js-exposed":
-/*!**************************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/prepare/limiters/TimeLimiter.js-exposed ***!
-  \**************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./TimeLimiter.js */ "./node_modules/pixi.js/lib/prepare/limiters/TimeLimiter.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/pixi.js/lib/prepare/webgl/WebGLPrepare.js":
 /*!****************************************************************!*\
   !*** ./node_modules/pixi.js/lib/prepare/webgl/WebGLPrepare.js ***!
@@ -48373,11 +47367,11 @@ module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./TimeLimiter.
 
 exports.__esModule = true;
 
-var _core = __webpack_require__(/*! ../../core */ "./node_modules/pixi.js/lib/core/index.js-exposed");
+var _core = __webpack_require__(/*! ../../core */ "./node_modules/pixi.js/lib/core/index.js");
 
 var core = _interopRequireWildcard(_core);
 
-var _BasePrepare2 = __webpack_require__(/*! ../BasePrepare */ "./node_modules/pixi.js/lib/prepare/BasePrepare.js-exposed");
+var _BasePrepare2 = __webpack_require__(/*! ../BasePrepare */ "./node_modules/pixi.js/lib/prepare/BasePrepare.js");
 
 var _BasePrepare3 = _interopRequireDefault(_BasePrepare2);
 
@@ -48490,19 +47484,6 @@ function findGraphics(item, queue) {
 
 core.WebGLRenderer.registerPlugin('prepare', WebGLPrepare);
 //# sourceMappingURL=WebGLPrepare.js.map
-
-/***/ }),
-
-/***/ "./node_modules/pixi.js/lib/prepare/webgl/WebGLPrepare.js-exposed":
-/*!************************************************************************!*\
-  !*** ./node_modules/pixi.js/lib/prepare/webgl/WebGLPrepare.js-exposed ***!
-  \************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./WebGLPrepare.js */ "./node_modules/pixi.js/lib/prepare/webgl/WebGLPrepare.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
 
 /***/ }),
 
@@ -48826,19 +47807,6 @@ if (true) {
   module.exports = EventEmitter;
 }
 
-
-/***/ }),
-
-/***/ "./node_modules/pixi.js/node_modules/eventemitter3/index.js-exposed":
-/*!**************************************************************************!*\
-  !*** ./node_modules/pixi.js/node_modules/eventemitter3/index.js-exposed ***!
-  \**************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["pixi"]) global["pixi"] = {};
-module.exports = global["pixi"]["js"] = __webpack_require__(/*! -!./index.js */ "./node_modules/pixi.js/node_modules/eventemitter3/index.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
 
 /***/ }),
 
@@ -51556,10 +50524,10 @@ function blobMiddlewareFactory() {
  * Module dependencies.
  */
 
-var url = __webpack_require__(/*! ./url */ "./node_modules/socket.io-client/lib/url.js-exposed");
+var url = __webpack_require__(/*! ./url */ "./node_modules/socket.io-client/lib/url.js");
 var parser = __webpack_require__(/*! socket.io-parser */ "./node_modules/socket.io-parser/index.js");
-var Manager = __webpack_require__(/*! ./manager */ "./node_modules/socket.io-client/lib/manager.js-exposed");
-var debug = __webpack_require__(/*! debug */ "./node_modules/socket.io-client/node_modules/debug/src/browser.js-exposed")('socket.io-client');
+var Manager = __webpack_require__(/*! ./manager */ "./node_modules/socket.io-client/lib/manager.js");
+var debug = __webpack_require__(/*! debug */ "./node_modules/socket.io-client/node_modules/debug/src/browser.js")('socket.io-client');
 
 /**
  * Module exports.
@@ -51643,22 +50611,9 @@ exports.connect = lookup;
  * @api public
  */
 
-exports.Manager = __webpack_require__(/*! ./manager */ "./node_modules/socket.io-client/lib/manager.js-exposed");
-exports.Socket = __webpack_require__(/*! ./socket */ "./node_modules/socket.io-client/lib/socket.js-exposed");
+exports.Manager = __webpack_require__(/*! ./manager */ "./node_modules/socket.io-client/lib/manager.js");
+exports.Socket = __webpack_require__(/*! ./socket */ "./node_modules/socket.io-client/lib/socket.js");
 
-
-/***/ }),
-
-/***/ "./node_modules/socket.io-client/lib/index.js-exposed":
-/*!************************************************************!*\
-  !*** ./node_modules/socket.io-client/lib/index.js-exposed ***!
-  \************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["socket"]) global["socket"] = {};
-module.exports = global["socket"]["io"] = __webpack_require__(/*! -!./index.js */ "./node_modules/socket.io-client/lib/index.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
 
 /***/ }),
 
@@ -51675,12 +50630,12 @@ module.exports = global["socket"]["io"] = __webpack_require__(/*! -!./index.js *
  */
 
 var eio = __webpack_require__(/*! engine.io-client */ "./node_modules/engine.io-client/lib/index.js");
-var Socket = __webpack_require__(/*! ./socket */ "./node_modules/socket.io-client/lib/socket.js-exposed");
+var Socket = __webpack_require__(/*! ./socket */ "./node_modules/socket.io-client/lib/socket.js");
 var Emitter = __webpack_require__(/*! component-emitter */ "./node_modules/component-emitter/index.js");
 var parser = __webpack_require__(/*! socket.io-parser */ "./node_modules/socket.io-parser/index.js");
-var on = __webpack_require__(/*! ./on */ "./node_modules/socket.io-client/lib/on.js-exposed");
+var on = __webpack_require__(/*! ./on */ "./node_modules/socket.io-client/lib/on.js");
 var bind = __webpack_require__(/*! component-bind */ "./node_modules/component-bind/index.js");
-var debug = __webpack_require__(/*! debug */ "./node_modules/socket.io-client/node_modules/debug/src/browser.js-exposed")('socket.io-client:manager');
+var debug = __webpack_require__(/*! debug */ "./node_modules/socket.io-client/node_modules/debug/src/browser.js")('socket.io-client:manager');
 var indexOf = __webpack_require__(/*! indexof */ "./node_modules/indexof/index.js");
 var Backoff = __webpack_require__(/*! backo2 */ "./node_modules/backo2/index.js");
 
@@ -52246,19 +51201,6 @@ Manager.prototype.onreconnect = function () {
 
 /***/ }),
 
-/***/ "./node_modules/socket.io-client/lib/manager.js-exposed":
-/*!**************************************************************!*\
-  !*** ./node_modules/socket.io-client/lib/manager.js-exposed ***!
-  \**************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["socket"]) global["socket"] = {};
-module.exports = global["socket"]["io"] = __webpack_require__(/*! -!./manager.js */ "./node_modules/socket.io-client/lib/manager.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/socket.io-client/lib/on.js":
 /*!*************************************************!*\
   !*** ./node_modules/socket.io-client/lib/on.js ***!
@@ -52294,19 +51236,6 @@ function on (obj, ev, fn) {
 
 /***/ }),
 
-/***/ "./node_modules/socket.io-client/lib/on.js-exposed":
-/*!*********************************************************!*\
-  !*** ./node_modules/socket.io-client/lib/on.js-exposed ***!
-  \*********************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["socket"]) global["socket"] = {};
-module.exports = global["socket"]["io"] = __webpack_require__(/*! -!./on.js */ "./node_modules/socket.io-client/lib/on.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/socket.io-client/lib/socket.js":
 /*!*****************************************************!*\
   !*** ./node_modules/socket.io-client/lib/socket.js ***!
@@ -52322,9 +51251,9 @@ module.exports = global["socket"]["io"] = __webpack_require__(/*! -!./on.js */ "
 var parser = __webpack_require__(/*! socket.io-parser */ "./node_modules/socket.io-parser/index.js");
 var Emitter = __webpack_require__(/*! component-emitter */ "./node_modules/component-emitter/index.js");
 var toArray = __webpack_require__(/*! to-array */ "./node_modules/to-array/index.js");
-var on = __webpack_require__(/*! ./on */ "./node_modules/socket.io-client/lib/on.js-exposed");
+var on = __webpack_require__(/*! ./on */ "./node_modules/socket.io-client/lib/on.js");
 var bind = __webpack_require__(/*! component-bind */ "./node_modules/component-bind/index.js");
-var debug = __webpack_require__(/*! debug */ "./node_modules/socket.io-client/node_modules/debug/src/browser.js-exposed")('socket.io-client:socket');
+var debug = __webpack_require__(/*! debug */ "./node_modules/socket.io-client/node_modules/debug/src/browser.js")('socket.io-client:socket');
 var parseqs = __webpack_require__(/*! parseqs */ "./node_modules/parseqs/index.js");
 var hasBin = __webpack_require__(/*! has-binary2 */ "./node_modules/has-binary2/index.js");
 
@@ -52756,19 +51685,6 @@ Socket.prototype.binary = function (binary) {
 
 /***/ }),
 
-/***/ "./node_modules/socket.io-client/lib/socket.js-exposed":
-/*!*************************************************************!*\
-  !*** ./node_modules/socket.io-client/lib/socket.js-exposed ***!
-  \*************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["socket"]) global["socket"] = {};
-module.exports = global["socket"]["io"] = __webpack_require__(/*! -!./socket.js */ "./node_modules/socket.io-client/lib/socket.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/socket.io-client/lib/url.js":
 /*!**************************************************!*\
   !*** ./node_modules/socket.io-client/lib/url.js ***!
@@ -52782,7 +51698,7 @@ module.exports = global["socket"]["io"] = __webpack_require__(/*! -!./socket.js 
  */
 
 var parseuri = __webpack_require__(/*! parseuri */ "./node_modules/parseuri/index.js");
-var debug = __webpack_require__(/*! debug */ "./node_modules/socket.io-client/node_modules/debug/src/browser.js-exposed")('socket.io-client:url');
+var debug = __webpack_require__(/*! debug */ "./node_modules/socket.io-client/node_modules/debug/src/browser.js")('socket.io-client:url');
 
 /**
  * Module exports.
@@ -52856,19 +51772,6 @@ function url (uri, loc) {
 
 /***/ }),
 
-/***/ "./node_modules/socket.io-client/lib/url.js-exposed":
-/*!**********************************************************!*\
-  !*** ./node_modules/socket.io-client/lib/url.js-exposed ***!
-  \**********************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["socket"]) global["socket"] = {};
-module.exports = global["socket"]["io"] = __webpack_require__(/*! -!./url.js */ "./node_modules/socket.io-client/lib/url.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
 /***/ "./node_modules/socket.io-client/node_modules/debug/src/browser.js":
 /*!*************************************************************************!*\
   !*** ./node_modules/socket.io-client/node_modules/debug/src/browser.js ***!
@@ -52882,7 +51785,7 @@ module.exports = global["socket"]["io"] = __webpack_require__(/*! -!./url.js */ 
  * Expose `debug()` as the module.
  */
 
-exports = module.exports = __webpack_require__(/*! ./debug */ "./node_modules/socket.io-client/node_modules/debug/src/debug.js-exposed");
+exports = module.exports = __webpack_require__(/*! ./debug */ "./node_modules/socket.io-client/node_modules/debug/src/debug.js");
 exports.log = log;
 exports.formatArgs = formatArgs;
 exports.save = save;
@@ -53073,19 +51976,6 @@ function localstorage() {
 }
 
 /* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../process/browser.js */ "./node_modules/process/browser.js")))
-
-/***/ }),
-
-/***/ "./node_modules/socket.io-client/node_modules/debug/src/browser.js-exposed":
-/*!*********************************************************************************!*\
-  !*** ./node_modules/socket.io-client/node_modules/debug/src/browser.js-exposed ***!
-  \*********************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["socket"]) global["socket"] = {};
-module.exports = global["socket"]["io"] = __webpack_require__(/*! -!./browser.js */ "./node_modules/socket.io-client/node_modules/debug/src/browser.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
 
 /***/ }),
 
@@ -53322,19 +52212,6 @@ function coerce(val) {
   return val;
 }
 
-
-/***/ }),
-
-/***/ "./node_modules/socket.io-client/node_modules/debug/src/debug.js-exposed":
-/*!*******************************************************************************!*\
-  !*** ./node_modules/socket.io-client/node_modules/debug/src/debug.js-exposed ***!
-  \*******************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {if(!global["socket"]) global["socket"] = {};
-module.exports = global["socket"]["io"] = __webpack_require__(/*! -!./debug.js */ "./node_modules/socket.io-client/node_modules/debug/src/debug.js");
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
 
 /***/ }),
 
@@ -55374,16 +54251,19 @@ module.exports = yeast;
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */ var pixi_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! pixi.js */ "./node_modules/pixi.js/lib/index.js-exposed");
+/* harmony import */ var pixi_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! pixi.js */ "./node_modules/pixi.js/lib/index.js");
 /* harmony import */ var pixi_js__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(pixi_js__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var _js_Game__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./js/Game */ "./src/js/Game.js");
-/* harmony import */ var _css_game_scss__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./css/game.scss */ "./src/css/game.scss");
-/* harmony import */ var _css_game_scss__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__webpack_require__.n(_css_game_scss__WEBPACK_IMPORTED_MODULE_2__);
+/* harmony import */ var pixi_tilemap__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! pixi-tilemap */ "./node_modules/pixi-tilemap/dist/pixi-tilemap.js");
+/* harmony import */ var pixi_tilemap__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(pixi_tilemap__WEBPACK_IMPORTED_MODULE_1__);
+/* harmony import */ var _js_Game__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./js/Game */ "./src/js/Game.js");
+/* harmony import */ var _css_game_scss__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./css/game.scss */ "./src/css/game.scss");
+/* harmony import */ var _css_game_scss__WEBPACK_IMPORTED_MODULE_3___default = /*#__PURE__*/__webpack_require__.n(_css_game_scss__WEBPACK_IMPORTED_MODULE_3__);
+
 
 
 
 window.PIXI = pixi_js__WEBPACK_IMPORTED_MODULE_0__;
-window.Game = _js_Game__WEBPACK_IMPORTED_MODULE_1__["default"];
+window.Game = _js_Game__WEBPACK_IMPORTED_MODULE_2__["default"];
 
 /***/ }),
 
@@ -55551,7 +54431,29 @@ class ResourceRegistry {
   _parseResource(resource) {
     switch (resource.type) {
       case PIXI.loaders.Resource.TYPE.IMAGE:
-        return resource.texture;
+        if (resource.spritesheet) {
+          return resource.spritesheet;
+        } else {
+          return resource.texture;
+        }
+
+      case PIXI.loaders.Resource.TYPE.AUDIO:
+        return resource;
+
+      case PIXI.loaders.Resource.TYPE.VIDEO:
+        return resource;
+
+      case PIXI.loaders.Resource.TYPE.JSON:
+        return resource;
+
+      case PIXI.loaders.Resource.TYPE.XML:
+        return resource;
+
+      case PIXI.loaders.Resource.TYPE.TEXT:
+        return resource;
+
+      default:
+        return resource;
     }
   }
 
@@ -55591,7 +54493,7 @@ class Scene extends PIXI.Container {
     });
   }
 
-  init() {}
+  init(args) {}
 
   destroy() {}
 
@@ -55626,7 +54528,7 @@ class SceneDirector {
     this._sceneConstructors[alias] = SceneConstructor;
   }
 
-  goTo(alias) {
+  goTo(alias, args) {
     const Scene = this._sceneConstructors[alias];
 
     if (Scene) {
@@ -55640,7 +54542,7 @@ class SceneDirector {
           director._stage.removeChild(director._activeScene);
         }
 
-        scene.init();
+        scene.init.apply(scene, args);
 
         director._stage.addChild(scene);
 
@@ -55675,7 +54577,7 @@ class SceneDirector {
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */ var socket_io__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! socket.io */ "./node_modules/socket.io-client/lib/index.js-exposed");
+/* harmony import */ var socket_io__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! socket.io */ "./node_modules/socket.io-client/lib/index.js");
 /* harmony import */ var socket_io__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(socket_io__WEBPACK_IMPORTED_MODULE_0__);
 /* harmony import */ var _socketEvents__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./socketEvents */ "./src/js/components/socket/socketEvents.js");
 
@@ -55711,8 +54613,10 @@ __webpack_require__.r(__webpack_exports__);
 
 /* harmony default export */ __webpack_exports__["default"] = ({
   CONNECTION_ESTABLISHED: "connection established",
-  PLAYER_JOIN: "player connect",
-  PLAYER_LEAVE: "player disconnect"
+  PLAYER_JOIN: "player enter",
+  PLAYER_LEAVE: "player exit",
+  FIND_ROOM: "find_room",
+  ROOM_FOUND: "room found"
 });
 
 /***/ }),
@@ -55728,6 +54632,8 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _components_scene_Scene__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../../components/scene/Scene */ "./src/js/components/scene/Scene.js");
 /* harmony import */ var _components_socket_Socket__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../../components/socket/Socket */ "./src/js/components/socket/Socket.js");
+/* harmony import */ var _Terrain__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./Terrain */ "./src/js/scene/battleground/Terrain.js");
+
 
 
 
@@ -55738,7 +54644,8 @@ class BattlegroundScene extends _components_scene_Scene__WEBPACK_IMPORTED_MODULE
     super();
   }
 
-  init() {
+  init(mapData) {
+    this._terrain = this._createTerrain(mapData.terrain);
     const circs = {};
     this.socket.on(_components_socket_Socket__WEBPACK_IMPORTED_MODULE_1__["default"].EVENT.PLAYER_JOIN, data => {
       const pos = new PIXI.Point(Math.random() * this.renderer.width, Math.random() * this.renderer.height);
@@ -55750,11 +54657,51 @@ class BattlegroundScene extends _components_scene_Scene__WEBPACK_IMPORTED_MODULE
       delete circs[data.playerId];
       console.log(data.playerId + " disconnected");
     });
+    this.resize(this.renderer.width, this.renderer.height);
+  }
+
+  resize(width, height) {
+    this._terrain.scale.set(Math.max(width / this._terrain.bounds.width, height / this._terrain.bounds.height));
+  }
+
+  _createTerrain(terrainData) {
+    return this.addChild(new _Terrain__WEBPACK_IMPORTED_MODULE_2__["default"](terrainData, this.resources["/assets/images/grassfield.json"]));
   }
 
 }
 
 /* harmony default export */ __webpack_exports__["default"] = (BattlegroundScene);
+
+/***/ }),
+
+/***/ "./src/js/scene/battleground/Terrain.js":
+/*!**********************************************!*\
+  !*** ./src/js/scene/battleground/Terrain.js ***!
+  \**********************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+
+
+class Terrain extends PIXI.tilemap.CompositeRectTileLayer {
+  constructor(terrainData, tileset) {
+    super(0, [tileset]);
+
+    for (let r = 0; r < 30; r++) {
+      for (let c = 0; c < 40; c++) {
+        const tileType = terrainData[r * 40 + c];
+        this.addFrame(tileset.textures[tileType], c * 128, r * 128);
+      }
+    }
+
+    this.bounds = new PIXI.Rectangle(0, 0, 128 * 40, 128 * 30);
+  }
+
+}
+
+/* harmony default export */ __webpack_exports__["default"] = (Terrain);
 
 /***/ }),
 
@@ -55768,6 +54715,8 @@ class BattlegroundScene extends _components_scene_Scene__WEBPACK_IMPORTED_MODULE
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _components_scene_Scene__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../../components/scene/Scene */ "./src/js/components/scene/Scene.js");
+/* harmony import */ var _components_socket_Socket__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../../components/socket/Socket */ "./src/js/components/socket/Socket.js");
+
 
 
 
@@ -55778,11 +54727,14 @@ class BootScene extends _components_scene_Scene__WEBPACK_IMPORTED_MODULE_0__["de
   }
 
   async load() {
-    await this.loader.load("/assets/images/shaman.jpg", "/assets/images/barbarian.jpg", "/assets/images/dwarf.jpg", "/assets/images/ninja.jpg");
+    await this.loader.load("/assets/images/shaman.jpg", "/assets/images/barbarian.jpg", "/assets/images/dwarf.jpg", "/assets/images/ninja.jpg", "/assets/images/grassfield.json");
   }
 
   init() {
-    this.director.goTo("Battleground");
+    this.socket.on(_components_socket_Socket__WEBPACK_IMPORTED_MODULE_1__["default"].EVENT.ROOM_FOUND, (data => {
+      this.director.goTo("Battleground", [data.map]);
+    }).bind(this));
+    this.socket.emit(_components_socket_Socket__WEBPACK_IMPORTED_MODULE_1__["default"].EVENT.FIND_ROOM);
   }
 
 }

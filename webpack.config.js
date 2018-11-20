@@ -6,6 +6,7 @@ const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 
 const MODULE_PATH = {
     PIXI: path.join(__dirname, 'node_modules', 'pixi.js'),
+    PIXI_TILEMAP: path.join(__dirname, 'node_modules', 'pixi-tilemap'),
     SOCKET_IO: path.join(__dirname, 'node_modules', 'socket.io-client')
 }
 
@@ -64,18 +65,18 @@ module.exports = {
                 loader: 'json'
             },
             {
-                test: MODULE_PATH.PIXI,
-                loader: 'expose-loader?pixi.js' 
-            },
-            {
-                test: MODULE_PATH.SOCKET_IO,
-                loader: 'expose-loader?socket.io' 
+                include: [
+                    MODULE_PATH.PIXI, 
+                    MODULE_PATH.SOCKET_IO
+                ],
+                loader: 'transform-loader?brfs'
             }
-       ]
+       ],
     },
     resolve: {
         alias: {
           'pixi.js': MODULE_PATH.PIXI,
+          'pixi-tilemap': MODULE_PATH.PIXI_TILEMAP,
           'socket.io': MODULE_PATH.SOCKET_IO
         }
     },

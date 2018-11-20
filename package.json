@@ -13,11 +13,11 @@
     "@babel/core": "^7.1.2",
     "@babel/plugin-proposal-class-properties": "^7.1.0",
     "@babel/plugin-proposal-function-bind": "^7.0.0",
-    "@babel/plugin-proposal-object-rest-spread": "^7.0.0",
     "@babel/plugin-syntax-async-generators": "^7.0.0",
     "@babel/plugin-transform-runtime": "^7.1.0",
     "@babel/preset-env": "^7.1.0",
     "babel-loader": "^8.0.4",
+    "brfs": "^2.0.1",
     "copy-webpack-plugin": "^4.6.0",
     "css-loader": "^1.0.1",
     "expose-loader": "^0.7.1",
@@ -26,12 +26,14 @@
     "mini-css-extract-plugin": "^0.4.4",
     "node-sass": "^4.10.0",
     "sass-loader": "^7.1.0",
+    "transform-loader": "^0.2.4",
     "webpack": "^4.20.2",
     "webpack-cli": "^3.1.2",
     "webpack-dev-server": "^3.1.9"
   },
   "dependencies": {
     "@babel/runtime": "^7.1.5",
+    "pixi-tilemap": "^1.2.4",
     "pixi.js": "^4.8.2",
     "socket.io-client": "^2.1.1"
   }

@@ -2,13 +2,16 @@
 
 import Scene from "../../components/scene/Scene";
 import Socket from "../../components/socket/Socket";
+import Terrain from "./Terrain";
 
 class BattlegroundScene extends Scene {
     constructor() {
         super();
     }
 
-    init() {
+    init(mapData) {
+        this._terrain = this._createTerrain(mapData.terrain);
+
         const circs = {};
 
         this.socket.on(Socket.EVENT.PLAYER_JOIN, (data) => {
@@ -22,6 +25,16 @@ class BattlegroundScene extends Scene {
             delete circs[data.playerId];
             console.log(data.playerId + " disconnected");
         });
+
+        this.resize(this.renderer.width, this.renderer.height);
+    }
+
+    resize(width, height) {
+        this._terrain.scale.set(Math.max(width / this._terrain.bounds.width, height / this._terrain.bounds.height));
+    }
+
+    _createTerrain(terrainData) {
+        return this.addChild(new Terrain(terrainData, this.resources["/assets/images/grassfield.json"]));
     }
 }
 

@@ -12,7 +12,7 @@ class SceneDirector {
         this._sceneConstructors[alias] = SceneConstructor;
     }
 
-    goTo(alias) {
+    goTo(alias, args) {
         const Scene = this._sceneConstructors[alias];
         if (Scene) {
             const scene = new Scene();
@@ -25,7 +25,7 @@ class SceneDirector {
                     director._stage.removeChild(director._activeScene);
                 }
 
-                scene.init();
+                scene.init.apply(scene, args);
                 director._stage.addChild(scene);
                 director._activeScene = scene;
             });
