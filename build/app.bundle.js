@@ -54278,7 +54278,7 @@ window.Game = _js_Game__WEBPACK_IMPORTED_MODULE_2__["default"];
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _components_ResourceRegistry__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./components/ResourceRegistry */ "./src/js/components/ResourceRegistry.js");
 /* harmony import */ var _components_ResourceLoader__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./components/ResourceLoader */ "./src/js/components/ResourceLoader.js");
-/* harmony import */ var _components_scene_SceneDirector__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./components/scene/SceneDirector */ "./src/js/components/scene/SceneDirector.js");
+/* harmony import */ var _components_SceneDirector__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./components/SceneDirector */ "./src/js/components/SceneDirector.js");
 /* harmony import */ var _components_socket_Socket__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./components/socket/Socket */ "./src/js/components/socket/Socket.js");
 /* harmony import */ var _scene_boot_BootScene__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./scene/boot/BootScene */ "./src/js/scene/boot/BootScene.js");
 /* harmony import */ var _scene_battleground_BattlegroundScene__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./scene/battleground/BattlegroundScene */ "./src/js/scene/battleground/BattlegroundScene.js");
@@ -54300,7 +54300,7 @@ class Game extends PIXI.Application {
     });
     this._resources = new _components_ResourceRegistry__WEBPACK_IMPORTED_MODULE_0__["default"]();
     this._loader = new _components_ResourceLoader__WEBPACK_IMPORTED_MODULE_1__["default"](this._resources);
-    this._sceneDirector = new _components_scene_SceneDirector__WEBPACK_IMPORTED_MODULE_2__["default"](this.stage);
+    this._sceneDirector = new _components_SceneDirector__WEBPACK_IMPORTED_MODULE_2__["default"](this.stage);
     this._socket = new _components_socket_Socket__WEBPACK_IMPORTED_MODULE_3__["default"]();
 
     this._setUpSceneDecorator();
@@ -54327,7 +54327,7 @@ class Game extends PIXI.Application {
   _setUpSceneDecorator() {
     const game = this;
 
-    this._sceneDirector.onSceneCreate = scene => {
+    this._sceneDirector.on("sceneCreate", scene => {
       Object.defineProperty(scene, "renderer", {
         get: () => {
           return game.renderer;
@@ -54353,7 +54353,7 @@ class Game extends PIXI.Application {
           return game._socket;
         }
       });
-    };
+    });
   }
 
 }
@@ -54463,57 +54463,18 @@ class ResourceRegistry {
 
 /***/ }),
 
-/***/ "./src/js/components/scene/Scene.js":
-/*!******************************************!*\
-  !*** ./src/js/components/scene/Scene.js ***!
-  \******************************************/
+/***/ "./src/js/components/SceneDirector.js":
+/*!********************************************!*\
+  !*** ./src/js/components/SceneDirector.js ***!
+  \********************************************/
 /*! exports provided: default */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
+/* harmony import */ var _structure_EventDispatcher__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./structure/EventDispatcher */ "./src/js/components/structure/EventDispatcher.js");
 
 
-class Scene extends PIXI.Container {
-  constructor() {
-    super(); // References inserted to scene immediately after its creation
-
-    this.renderer = null; // PIXI renderer
-
-    this.resources = null; // ResourceRegistry
-
-    this.loader = null; // ResourceLoader
-
-    this.director = null; // SceneDirector
-  }
-
-  async load() {
-    return new Promise((resolve, reject) => {
-      resolve();
-    });
-  }
-
-  init(args) {}
-
-  destroy() {}
-
-  resize(width, height) {}
-
-}
-
-/* harmony default export */ __webpack_exports__["default"] = (Scene);
-
-/***/ }),
-
-/***/ "./src/js/components/scene/SceneDirector.js":
-/*!**************************************************!*\
-  !*** ./src/js/components/scene/SceneDirector.js ***!
-  \**************************************************/
-/*! exports provided: default */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-__webpack_require__.r(__webpack_exports__);
 
 
 class SceneDirector {
@@ -54533,7 +54494,7 @@ class SceneDirector {
 
     if (Scene) {
       const scene = new Scene();
-      this.onSceneCreate(scene);
+      this.emit("sceneCreate", [scene]);
       const director = this;
       scene.load().then(() => {
         if (director._activeScene) {
@@ -54559,11 +54520,9 @@ class SceneDirector {
     }
   }
 
-  onSceneCreate(scene) {// Overridden in Game class to insert scene.loader, scene.resources, scene.director properties
-  }
-
 }
 
+_structure_EventDispatcher__WEBPACK_IMPORTED_MODULE_0__["default"].embedInto(SceneDirector);
 /* harmony default export */ __webpack_exports__["default"] = (SceneDirector);
 
 /***/ }),
@@ -54621,6 +54580,167 @@ __webpack_require__.r(__webpack_exports__);
 
 /***/ }),
 
+/***/ "./src/js/components/structure/EventDispatcher.js":
+/*!********************************************************!*\
+  !*** ./src/js/components/structure/EventDispatcher.js ***!
+  \********************************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */ var _Interface__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./Interface */ "./src/js/components/structure/Interface.js");
+
+
+
+
+class EventDispatcher extends _Interface__WEBPACK_IMPORTED_MODULE_0__["default"] {
+  static embedInto(Class) {
+    _Interface__WEBPACK_IMPORTED_MODULE_0__["default"].embedInto.call(this, Class);
+    Class.prototype._handlers = [];
+  }
+
+  on(eventKey, callback, scope) {
+    this._registerEvent(eventKey, callback, scope);
+  }
+
+  once(eventKey, callback, scope) {
+    this._registerEvent(eventKey, callback, scope, 1);
+  }
+
+  emit(eventKey, args = []) {
+    const eventHandlers = this._handlers[eventKey];
+
+    if (eventHandlers) {
+      for (let i = eventHandlers.length - 1; i >= 0; i--) {
+        const handler = eventHandlers[i];
+
+        if (handler.scope) {
+          handler.callback.call(handler.scope, ...args);
+        } else {
+          handler.callback(...args);
+        }
+
+        if (--handler.counter === 0) {
+          eventHandlers.splice(i, 1);
+        }
+      }
+    }
+  }
+
+  off(eventKey, callback) {
+    const eventHandlers = this._handlers[eventKey];
+
+    if (eventHandlers) {
+      for (const handler of eventHandlers) {
+        if (handler.callback === callback) {
+          eventHandlers.splice(eventHandlers.indexOf(handler), 1);
+          break;
+        }
+      }
+    }
+  }
+
+  _registerEvent(eventKey, callback, scope, counter = -1) {
+    this._handlers[eventKey] = this._handlers[eventKey] || [];
+
+    this._handlers[eventKey].push({
+      callback,
+      scope,
+      counter
+    });
+  }
+
+}
+
+/* harmony default export */ __webpack_exports__["default"] = (EventDispatcher);
+
+/***/ }),
+
+/***/ "./src/js/components/structure/Interface.js":
+/*!**************************************************!*\
+  !*** ./src/js/components/structure/Interface.js ***!
+  \**************************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+
+
+class Interface {
+  static embedInto(Class) {
+    Object.assign(Class.prototype, this._filterPrototypeMethods());
+  } // Credit Pierre Arnaud
+  // http://code.fitness/post/2016/01/javascript-enumerate-methods.html
+
+
+  static _filterPrototypeMethods() {
+    const methods = {};
+    const proto = this.prototype;
+    Object.getOwnPropertyNames(proto).forEach(name => {
+      if (name !== 'constructor') {
+        if (this._hasOwnMethod(proto, name)) {
+          methods[name] = proto[name];
+        }
+      }
+    });
+    return methods;
+  }
+
+  static _hasOwnMethod(obj, name) {
+    const desc = Object.getOwnPropertyDescriptor(obj, name);
+    return !!desc && typeof desc.value === 'function';
+  }
+
+}
+
+/* harmony default export */ __webpack_exports__["default"] = (Interface);
+
+/***/ }),
+
+/***/ "./src/js/components/structure/Scene.js":
+/*!**********************************************!*\
+  !*** ./src/js/components/structure/Scene.js ***!
+  \**********************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+
+
+class Scene extends PIXI.Container {
+  constructor() {
+    super(); // References inserted to scene immediately after its creation
+
+    this.renderer = null; // PIXI renderer
+
+    this.resources = null; // ResourceRegistry
+
+    this.loader = null; // ResourceLoader
+
+    this.director = null; // SceneDirector
+  }
+
+  async load() {
+    return new Promise((resolve, reject) => {
+      resolve();
+    });
+  }
+
+  init(args) {}
+
+  destroy() {}
+
+  resize(width, height) {}
+
+}
+
+/* harmony default export */ __webpack_exports__["default"] = (Scene);
+
+/***/ }),
+
 /***/ "./src/js/scene/battleground/BattlegroundScene.js":
 /*!********************************************************!*\
   !*** ./src/js/scene/battleground/BattlegroundScene.js ***!
@@ -54630,7 +54750,7 @@ __webpack_require__.r(__webpack_exports__);
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */ var _components_scene_Scene__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../../components/scene/Scene */ "./src/js/components/scene/Scene.js");
+/* harmony import */ var _components_structure_Scene__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../../components/structure/Scene */ "./src/js/components/structure/Scene.js");
 /* harmony import */ var _components_socket_Socket__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../../components/socket/Socket */ "./src/js/components/socket/Socket.js");
 /* harmony import */ var _Terrain__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./Terrain */ "./src/js/scene/battleground/Terrain.js");
 
@@ -54639,7 +54759,7 @@ __webpack_require__.r(__webpack_exports__);
 
 
 
-class BattlegroundScene extends _components_scene_Scene__WEBPACK_IMPORTED_MODULE_0__["default"] {
+class BattlegroundScene extends _components_structure_Scene__WEBPACK_IMPORTED_MODULE_0__["default"] {
   constructor() {
     super();
   }
@@ -54718,14 +54838,14 @@ _defineProperty(Terrain, "TILE_SIZE", 128);
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */ var _components_scene_Scene__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../../components/scene/Scene */ "./src/js/components/scene/Scene.js");
+/* harmony import */ var _components_structure_Scene__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../../components/structure/Scene */ "./src/js/components/structure/Scene.js");
 /* harmony import */ var _components_socket_Socket__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../../components/socket/Socket */ "./src/js/components/socket/Socket.js");
 
 
 
 
 
-class BootScene extends _components_scene_Scene__WEBPACK_IMPORTED_MODULE_0__["default"] {
+class BootScene extends _components_structure_Scene__WEBPACK_IMPORTED_MODULE_0__["default"] {
   constructor() {
     super();
   }

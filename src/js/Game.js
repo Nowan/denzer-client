@@ -2,7 +2,7 @@
 
 import ResourceRegistry from "./components/ResourceRegistry";
 import ResourceLoader from "./components/ResourceLoader";
-import SceneDirector from "./components/scene/SceneDirector";
+import SceneDirector from "./components/SceneDirector";
 import Socket from "./components/socket/Socket";
 
 import BootScene from "./scene/boot/BootScene";
@@ -37,13 +37,13 @@ class Game extends PIXI.Application {
 
     _setUpSceneDecorator() {
         const game = this;
-        this._sceneDirector.onSceneCreate = (scene) => {
+        this._sceneDirector.on("sceneCreate", (scene) => {
             Object.defineProperty(scene, "renderer", {get: () => {return game.renderer}});
             Object.defineProperty(scene, "resources", {get: () => {return game._resources}});
             Object.defineProperty(scene, "loader", {get: () => {return game._loader}});
             Object.defineProperty(scene, "director", {get: () => {return game._sceneDirector}});
             Object.defineProperty(scene, "socket", {get: () => {return game._socket}});
-        };
+        });
     }
 }
 

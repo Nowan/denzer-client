@@ -1,5 +1,7 @@
 "use strict";
 
+import EventDispatcher from "./structure/EventDispatcher";
+
 class SceneDirector {
     constructor(stage) {
         this._stage = stage;
@@ -16,7 +18,7 @@ class SceneDirector {
         const Scene = this._sceneConstructors[alias];
         if (Scene) {
             const scene = new Scene();
-            this.onSceneCreate(scene)
+            this.emit("sceneCreate", [scene]);
 
             const director = this;
             scene.load().then(() => { 
@@ -40,10 +42,8 @@ class SceneDirector {
             this._activeScene.resize(width, height);
         }
     }
-
-    onSceneCreate(scene) {
-        // Overridden in Game class to insert scene.loader, scene.resources, scene.director properties
-    }
 }
+
+EventDispatcher.embedInto(SceneDirector);
 
 export default SceneDirector;

@@ -1,6 +1,6 @@
 "use strict";
 
-import Scene from "../../components/scene/Scene";
+import Scene from "../../components/structure/Scene";
 import Socket from "../../components/socket/Socket";
 
 class BootScene extends Scene {
