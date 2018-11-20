@@ -20,7 +20,7 @@ class BootScene extends Scene {
 
     init() {
         this.socket.on(Socket.EVENT.ROOM_FOUND, ((data) => {
-            this.director.goTo("Battleground", [data.map]);
+            this.director.goTo("Battleground", [data.map, data.players]);
         }).bind(this));
 
         this.socket.emit(Socket.EVENT.FIND_ROOM);

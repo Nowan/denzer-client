@@ -54764,28 +54764,46 @@ class BattlegroundScene extends _components_structure_Scene__WEBPACK_IMPORTED_MO
     super();
   }
 
-  init(mapData) {
+  init(mapData, playersData) {
     this._terrain = this._createTerrain(mapData.terrain);
-    const circs = {};
-    this.socket.on(_components_socket_Socket__WEBPACK_IMPORTED_MODULE_1__["default"].EVENT.PLAYER_JOIN, data => {
-      const pos = new PIXI.Point(Math.random() * this.renderer.width, Math.random() * this.renderer.height);
-      circs[data.playerId] = this.addChild(new PIXI.Graphics().beginFill(0xffffff).drawCircle(pos.x, pos.y, 20));
-      console.log(data.playerId + " connected");
-    });
-    this.socket.on(_components_socket_Socket__WEBPACK_IMPORTED_MODULE_1__["default"].EVENT.PLAYER_LEAVE, data => {
-      this.removeChild(circs[data.playerId]);
-      delete circs[data.playerId];
-      console.log(data.playerId + " disconnected");
-    });
+    this._playerVisuals = {};
+
+    for (const playerData of playersData) {
+      const playerVisual = this._createPlayerVisual();
+
+      playerVisual.position.set(playerData.position.x, playerData.position.y);
+      this._playerVisuals[playerData.id] = playerVisual;
+    }
+
+    this.socket.on(_components_socket_Socket__WEBPACK_IMPORTED_MODULE_1__["default"].EVENT.PLAYER_JOIN, this._onPlayerJoin.bind(this));
+    this.socket.on(_components_socket_Socket__WEBPACK_IMPORTED_MODULE_1__["default"].EVENT.PLAYER_LEAVE, this._onPlayerLeave.bind(this));
     this.resize(this.renderer.width, this.renderer.height);
   }
 
   resize(width, height) {
-    this._terrain.scale.set(Math.max(width / this._terrain.bounds.width, height / this._terrain.bounds.height));
+    this.scale.set(Math.max(width / this._terrain.bounds.width, height / this._terrain.bounds.height));
+  }
+
+  _onPlayerJoin(data) {
+    const playerVisual = this._createPlayerVisual();
+
+    playerVisual.position.set(data.player.position.x, data.player.position.y);
+    this._playerVisuals[data.player.id] = playerVisual;
+    console.log(data.player.id + " connected. Spawn on position [" + playerVisual.x + ", " + playerVisual.y + "].");
+  }
+
+  _onPlayerLeave(data) {
+    this.removeChild(this._playerVisuals[data.player.id]);
+    delete this._playerVisuals[data.player.id];
+    console.log(data.player.id + " disconnected");
   }
 
   _createTerrain(terrainData) {
     return this.addChild(new _Terrain__WEBPACK_IMPORTED_MODULE_2__["default"](terrainData, this.resources["/assets/images/grassfield.json"]));
+  }
+
+  _createPlayerVisual() {
+    return this.addChild(new PIXI.Graphics().beginFill(0xffffff).drawCircle(0, 0, 20).endFill());
   }
 
 }
@@ -54856,7 +54874,7 @@ class BootScene extends _components_structure_Scene__WEBPACK_IMPORTED_MODULE_0__
 
   init() {
     this.socket.on(_components_socket_Socket__WEBPACK_IMPORTED_MODULE_1__["default"].EVENT.ROOM_FOUND, (data => {
-      this.director.goTo("Battleground", [data.map]);
+      this.director.goTo("Battleground", [data.map, data.players]);
     }).bind(this));
     this.socket.emit(_components_socket_Socket__WEBPACK_IMPORTED_MODULE_1__["default"].EVENT.FIND_ROOM);
   }
