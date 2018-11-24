@@ -3,6 +3,7 @@
 import ResourceRegistry from "./components/ResourceRegistry";
 import ResourceLoader from "./components/ResourceLoader";
 import SceneDirector from "./components/SceneDirector";
+import InputHandler from "./components/InputHandler";
 import Socket from "./components/socket/Socket";
 
 import BootScene from "./scene/boot/BootScene";
@@ -16,6 +17,7 @@ class Game extends PIXI.Application {
         this._loader = new ResourceLoader(this._resources);
         this._sceneDirector = new SceneDirector(this.stage);
         this._socket = new Socket();
+        this._inputHandler = new InputHandler();
 
         this._setUpSceneDecorator();
         this._registerScenes();
@@ -43,6 +45,7 @@ class Game extends PIXI.Application {
             Object.defineProperty(scene, "loader", {get: () => {return game._loader}});
             Object.defineProperty(scene, "director", {get: () => {return game._sceneDirector}});
             Object.defineProperty(scene, "socket", {get: () => {return game._socket}});
+            Object.defineProperty(scene, "input", {get: () => {return game._inputHandler}});
         });
     }
 }

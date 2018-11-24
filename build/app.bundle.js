@@ -54279,9 +54279,11 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _components_ResourceRegistry__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./components/ResourceRegistry */ "./src/js/components/ResourceRegistry.js");
 /* harmony import */ var _components_ResourceLoader__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./components/ResourceLoader */ "./src/js/components/ResourceLoader.js");
 /* harmony import */ var _components_SceneDirector__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./components/SceneDirector */ "./src/js/components/SceneDirector.js");
-/* harmony import */ var _components_socket_Socket__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./components/socket/Socket */ "./src/js/components/socket/Socket.js");
-/* harmony import */ var _scene_boot_BootScene__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./scene/boot/BootScene */ "./src/js/scene/boot/BootScene.js");
-/* harmony import */ var _scene_battleground_BattlegroundScene__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./scene/battleground/BattlegroundScene */ "./src/js/scene/battleground/BattlegroundScene.js");
+/* harmony import */ var _components_InputHandler__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./components/InputHandler */ "./src/js/components/InputHandler.js");
+/* harmony import */ var _components_socket_Socket__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./components/socket/Socket */ "./src/js/components/socket/Socket.js");
+/* harmony import */ var _scene_boot_BootScene__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./scene/boot/BootScene */ "./src/js/scene/boot/BootScene.js");
+/* harmony import */ var _scene_battleground_BattlegroundScene__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ./scene/battleground/BattlegroundScene */ "./src/js/scene/battleground/BattlegroundScene.js");
+
 
 
 
@@ -54301,13 +54303,14 @@ class Game extends PIXI.Application {
     this._resources = new _components_ResourceRegistry__WEBPACK_IMPORTED_MODULE_0__["default"]();
     this._loader = new _components_ResourceLoader__WEBPACK_IMPORTED_MODULE_1__["default"](this._resources);
     this._sceneDirector = new _components_SceneDirector__WEBPACK_IMPORTED_MODULE_2__["default"](this.stage);
-    this._socket = new _components_socket_Socket__WEBPACK_IMPORTED_MODULE_3__["default"]();
+    this._socket = new _components_socket_Socket__WEBPACK_IMPORTED_MODULE_4__["default"]();
+    this._inputHandler = new _components_InputHandler__WEBPACK_IMPORTED_MODULE_3__["default"]();
 
     this._setUpSceneDecorator();
 
     this._registerScenes();
 
-    this._socket.on(_components_socket_Socket__WEBPACK_IMPORTED_MODULE_3__["default"].EVENT.CONNECTION_ESTABLISHED, () => {
+    this._socket.on(_components_socket_Socket__WEBPACK_IMPORTED_MODULE_4__["default"].EVENT.CONNECTION_ESTABLISHED, () => {
       this._sceneDirector.goTo("Boot");
     });
   }
@@ -54319,9 +54322,9 @@ class Game extends PIXI.Application {
   }
 
   _registerScenes() {
-    this._sceneDirector.register("Boot", _scene_boot_BootScene__WEBPACK_IMPORTED_MODULE_4__["default"]);
+    this._sceneDirector.register("Boot", _scene_boot_BootScene__WEBPACK_IMPORTED_MODULE_5__["default"]);
 
-    this._sceneDirector.register("Battleground", _scene_battleground_BattlegroundScene__WEBPACK_IMPORTED_MODULE_5__["default"]);
+    this._sceneDirector.register("Battleground", _scene_battleground_BattlegroundScene__WEBPACK_IMPORTED_MODULE_6__["default"]);
   }
 
   _setUpSceneDecorator() {
@@ -54353,12 +54356,51 @@ class Game extends PIXI.Application {
           return game._socket;
         }
       });
+      Object.defineProperty(scene, "input", {
+        get: () => {
+          return game._inputHandler;
+        }
+      });
     });
   }
 
 }
 
 /* harmony default export */ __webpack_exports__["default"] = (Game);
+
+/***/ }),
+
+/***/ "./src/js/components/InputHandler.js":
+/*!*******************************************!*\
+  !*** ./src/js/components/InputHandler.js ***!
+  \*******************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */ var _structure_EventDispatcher__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./structure/EventDispatcher */ "./src/js/components/structure/EventDispatcher.js");
+
+
+
+
+class InputHandler {
+  constructor() {
+    window.addEventListener("keydown", event => {
+      if (!event.repeat) {
+        this.emit(event.key.toLowerCase() + "/down");
+      }
+    });
+  }
+
+  onKeyDown(key, callback) {
+    this.on(key.toLowerCase() + "/down", callback);
+  }
+
+}
+
+_structure_EventDispatcher__WEBPACK_IMPORTED_MODULE_0__["default"].embedInto(InputHandler);
+/* harmony default export */ __webpack_exports__["default"] = (InputHandler);
 
 /***/ }),
 
@@ -54777,6 +54819,18 @@ class BattlegroundScene extends _components_structure_Scene__WEBPACK_IMPORTED_MO
 
     this.socket.on(_components_socket_Socket__WEBPACK_IMPORTED_MODULE_1__["default"].EVENT.PLAYER_JOIN, this._onPlayerJoin.bind(this));
     this.socket.on(_components_socket_Socket__WEBPACK_IMPORTED_MODULE_1__["default"].EVENT.PLAYER_LEAVE, this._onPlayerLeave.bind(this));
+    this.input.onKeyDown("w", () => {
+      console.log("W");
+    });
+    this.input.onKeyDown("a", () => {
+      console.log("A");
+    });
+    this.input.onKeyDown("s", () => {
+      console.log("S");
+    });
+    this.input.onKeyDown("d", () => {
+      console.log("D");
+    });
     this.resize(this.renderer.width, this.renderer.height);
   }
 

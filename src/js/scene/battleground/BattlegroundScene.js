@@ -22,6 +22,22 @@ class BattlegroundScene extends Scene {
         this.socket.on(Socket.EVENT.PLAYER_JOIN, this._onPlayerJoin.bind(this));
         this.socket.on(Socket.EVENT.PLAYER_LEAVE, this._onPlayerLeave.bind(this));
 
+        this.input.onKeyDown("w", () => {
+            console.log("W");
+        });
+
+        this.input.onKeyDown("a", () => {
+            console.log("A");
+        });
+
+        this.input.onKeyDown("s", () => {
+            console.log("S");
+        });
+
+        this.input.onKeyDown("d", () => {
+            console.log("D");
+        });
+
         this.resize(this.renderer.width, this.renderer.height);
     }
 
