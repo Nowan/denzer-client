@@ -4,19 +4,14 @@ import Scene from "../../components/structure/Scene";
 import Socket from "../../components/socket/Socket";
 import Camera from "../../components/Camera";
 
-import Terrain from "./Terrain";
-import Vehicle from "./actors/Vehicle";
+import WorldContainer from "./WorldContainer";
 
 class BattlegroundScene extends Scene {
     init(mapData, playersData) {
-        this._terrain = this._createTerrain(mapData.terrain);
-        this._vehicles = this._createVehicles(playersData);
-        this._avatar = this._vehicles[this.socket.id];
-        
-        this._camera = new Camera(this);
-        this._camera.zoom = 0.5;
-        this._camera.position.set(this._avatar.x, this._avatar.y);
-        
+        this._world = this._createWorld(mapData, playersData);
+        this._camera = this._createCamera(this._world)
+        this._avatar = this._world.getActorByID(this.socket.id);
+
         this.socket.on(Socket.EVENT.PLAYER_JOIN, this._onPlayerJoin.bind(this));
         this.socket.on(Socket.EVENT.PLAYER_LEAVE, this._onPlayerLeave.bind(this));
 
@@ -36,6 +31,7 @@ class BattlegroundScene extends Scene {
             this._avatar.faceRight();
         });
 
+        this._camera.position.set(this._avatar.x, this._avatar.y);
         this.resize(this.renderer.width, this.renderer.height);
     }
 
@@ -51,36 +47,23 @@ class BattlegroundScene extends Scene {
     }
 
     _onPlayerJoin(data) {
-        const vehicle = this._createVehicle();
-        vehicle.position.set(data.player.position.x, data.player.position.y);
-        this._vehicles[data.player.id] = vehicle;
-
-        console.log(data.player.id + " connected. Spawn on position [" + vehicle.x + ", " + vehicle.y + "].");
+        this._world.spawnActor(data.player);
+        console.log(data.player.id + " connected. Spawn on position [" + data.player.position.x + ", " + data.player.position.y + "].");
     }
 
     _onPlayerLeave(data) {
-        this.removeChild(this._vehicles[data.player.id]);
-        delete this._vehicles[data.player.id];
-        
+        this._world.removeActorByID(data.player.id);
         console.log(data.player.id + " disconnected");
     }
 
-    _createTerrain(terrainData) {
-        return this.addChild(new Terrain(terrainData, this.resources["/assets/images/grassfield.json"]));
+    _createWorld(mapData, playersData) {
+        return this.addChild(new WorldContainer(mapData, playersData, this.resources));
     }
 
-    _createVehicles(playersData) {
-        const vehicles = {};
-        for (const playerData of playersData) {
-            const vehicle = this._createVehicle();
-            vehicle.position.set(playerData.position.x, playerData.position.y);
-            vehicles[playerData.id] = vehicle;
-        }
-        return vehicles;
-    }
-
-    _createVehicle() {
-        return this.addChild(new Vehicle());
+    _createCamera(world) {
+        const camera = new Camera(world);
+        camera.zoom = 0.5;
+        return camera;
     }
 }
 

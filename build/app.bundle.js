@@ -56294,9 +56294,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _components_structure_Scene__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../../components/structure/Scene */ "./src/js/components/structure/Scene.js");
 /* harmony import */ var _components_socket_Socket__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../../components/socket/Socket */ "./src/js/components/socket/Socket.js");
 /* harmony import */ var _components_Camera__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../../components/Camera */ "./src/js/components/Camera.js");
-/* harmony import */ var _Terrain__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./Terrain */ "./src/js/scene/battleground/Terrain.js");
-/* harmony import */ var _actors_Vehicle__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./actors/Vehicle */ "./src/js/scene/battleground/actors/Vehicle.js");
-
+/* harmony import */ var _WorldContainer__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./WorldContainer */ "./src/js/scene/battleground/WorldContainer.js");
 
 
 
@@ -56306,14 +56304,9 @@ __webpack_require__.r(__webpack_exports__);
 
 class BattlegroundScene extends _components_structure_Scene__WEBPACK_IMPORTED_MODULE_0__["default"] {
   init(mapData, playersData) {
-    this._terrain = this._createTerrain(mapData.terrain);
-    this._vehicles = this._createVehicles(playersData);
-    this._avatar = this._vehicles[this.socket.id];
-    this._camera = new _components_Camera__WEBPACK_IMPORTED_MODULE_2__["default"](this);
-    this._camera.zoom = 0.5;
-
-    this._camera.position.set(this._avatar.x, this._avatar.y);
-
+    this._world = this._createWorld(mapData, playersData);
+    this._camera = this._createCamera(this._world);
+    this._avatar = this._world.getActorByID(this.socket.id);
     this.socket.on(_components_socket_Socket__WEBPACK_IMPORTED_MODULE_1__["default"].EVENT.PLAYER_JOIN, this._onPlayerJoin.bind(this));
     this.socket.on(_components_socket_Socket__WEBPACK_IMPORTED_MODULE_1__["default"].EVENT.PLAYER_LEAVE, this._onPlayerLeave.bind(this));
     this.input.onKeyDown(["W", "ArrowUp"], () => {
@@ -56328,6 +56321,9 @@ class BattlegroundScene extends _components_structure_Scene__WEBPACK_IMPORTED_MO
     this.input.onKeyDown(["D", "ArrowRight"], () => {
       this._avatar.faceRight();
     });
+
+    this._camera.position.set(this._avatar.x, this._avatar.y);
+
     this.resize(this.renderer.width, this.renderer.height);
   }
 
@@ -56344,38 +56340,25 @@ class BattlegroundScene extends _components_structure_Scene__WEBPACK_IMPORTED_MO
   }
 
   _onPlayerJoin(data) {
-    const vehicle = this._createVehicle();
+    this._world.spawnActor(data.player);
 
-    vehicle.position.set(data.player.position.x, data.player.position.y);
-    this._vehicles[data.player.id] = vehicle;
-    console.log(data.player.id + " connected. Spawn on position [" + vehicle.x + ", " + vehicle.y + "].");
+    console.log(data.player.id + " connected. Spawn on position [" + data.player.position.x + ", " + data.player.position.y + "].");
   }
 
   _onPlayerLeave(data) {
-    this.removeChild(this._vehicles[data.player.id]);
-    delete this._vehicles[data.player.id];
+    this._world.removeActorByID(data.player.id);
+
     console.log(data.player.id + " disconnected");
   }
 
-  _createTerrain(terrainData) {
-    return this.addChild(new _Terrain__WEBPACK_IMPORTED_MODULE_3__["default"](terrainData, this.resources["/assets/images/grassfield.json"]));
+  _createWorld(mapData, playersData) {
+    return this.addChild(new _WorldContainer__WEBPACK_IMPORTED_MODULE_3__["default"](mapData, playersData, this.resources));
   }
 
-  _createVehicles(playersData) {
-    const vehicles = {};
-
-    for (const playerData of playersData) {
-      const vehicle = this._createVehicle();
-
-      vehicle.position.set(playerData.position.x, playerData.position.y);
-      vehicles[playerData.id] = vehicle;
-    }
-
-    return vehicles;
-  }
-
-  _createVehicle() {
-    return this.addChild(new _actors_Vehicle__WEBPACK_IMPORTED_MODULE_4__["default"]());
+  _createCamera(world) {
+    const camera = new _components_Camera__WEBPACK_IMPORTED_MODULE_2__["default"](world);
+    camera.zoom = 0.5;
+    return camera;
   }
 
 }
@@ -56416,6 +56399,72 @@ class Terrain extends PIXI.tilemap.CompositeRectTileLayer {
 _defineProperty(Terrain, "TILE_SIZE", 128);
 
 /* harmony default export */ __webpack_exports__["default"] = (Terrain);
+
+/***/ }),
+
+/***/ "./src/js/scene/battleground/WorldContainer.js":
+/*!*****************************************************!*\
+  !*** ./src/js/scene/battleground/WorldContainer.js ***!
+  \*****************************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */ var _Terrain__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./Terrain */ "./src/js/scene/battleground/Terrain.js");
+/* harmony import */ var _actors_Vehicle__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./actors/Vehicle */ "./src/js/scene/battleground/actors/Vehicle.js");
+
+
+
+
+
+class WorldContainer extends PIXI.Container {
+  constructor(mapData, playersData, resources) {
+    super();
+    this._terrain = this._createTerrain(mapData.terrain, resources);
+    this._actors = this._createActors(playersData);
+  }
+
+  getActorByID(actorID) {
+    return this._actors[actorID];
+  }
+
+  spawnActor(playerData) {
+    const vehicle = this._createVehicle();
+
+    vehicle.position.set(playerData.position.x, playerData.position.y);
+    this._actors[playerData.id] = vehicle;
+  }
+
+  removeActorByID(actorID) {
+    this.removeChild(this._actors[actorID]);
+    delete this._actors[actorID];
+  }
+
+  _createTerrain(terrainData, resources) {
+    return this.addChild(new _Terrain__WEBPACK_IMPORTED_MODULE_0__["default"](terrainData, resources["/assets/images/grassfield.json"]));
+  }
+
+  _createActors(playersData) {
+    const actors = {};
+
+    for (const playerData of playersData) {
+      const actor = this._createVehicle();
+
+      actor.position.set(playerData.position.x, playerData.position.y);
+      actors[playerData.id] = actor;
+    }
+
+    return actors;
+  }
+
+  _createVehicle() {
+    return this.addChild(new _actors_Vehicle__WEBPACK_IMPORTED_MODULE_1__["default"]());
+  }
+
+}
+
+/* harmony default export */ __webpack_exports__["default"] = (WorldContainer);
 
 /***/ }),
 
