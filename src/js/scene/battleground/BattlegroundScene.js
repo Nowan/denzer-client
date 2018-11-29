@@ -16,19 +16,19 @@ class BattlegroundScene extends Scene {
         this.socket.on(Socket.EVENT.PLAYER_LEAVE, this._onPlayerLeave.bind(this));
 
         this.input.onKeyDown(["W", "ArrowUp"], () => {
-            this._avatar.faceUp();
+            this._avatar.moveUp();
         });
 
         this.input.onKeyDown(["A", "ArrowLeft"], () => {
-            this._avatar.faceLeft();
+            this._avatar.moveLeft();
         });
 
         this.input.onKeyDown(["S", "ArrowDown"], () => {
-            this._avatar.faceDown();
+            this._avatar.moveDown();
         });
 
         this.input.onKeyDown(["D", "ArrowRight"], () => {
-            this._avatar.faceRight();
+            this._avatar.moveRight();
         });
 
         this._camera.position.set(this._avatar.x, this._avatar.y);
@@ -36,8 +36,7 @@ class BattlegroundScene extends Scene {
     }
 
     update(dt) {
-        this._avatar.x += this._avatar.velocity * this._avatar.direction.x * dt;
-        this._avatar.y += this._avatar.velocity * this._avatar.direction.y * dt;
+        this._world.update(dt);
         this._camera.position.set(this._avatar.x, this._avatar.y);
     }
 

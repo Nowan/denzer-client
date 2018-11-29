@@ -34,7 +34,7 @@ class SceneDirector {
                 
                 scene.ticker = new PIXI.ticker.Ticker();
                 scene.ticker.add((dt) => {
-                    scene.update(dt * 0.001);
+                    scene.update(dt * 0.01);
                 });
                 scene.ticker.start();
 

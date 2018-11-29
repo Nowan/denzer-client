@@ -56117,7 +56117,7 @@ class SceneDirector {
         scene.init.apply(scene, args);
         scene.ticker = new PIXI.ticker.Ticker();
         scene.ticker.add(dt => {
-          scene.update(dt * 0.001);
+          scene.update(dt * 0.01);
         });
         scene.ticker.start();
 
@@ -56310,16 +56310,16 @@ class BattlegroundScene extends _components_structure_Scene__WEBPACK_IMPORTED_MO
     this.socket.on(_components_socket_Socket__WEBPACK_IMPORTED_MODULE_1__["default"].EVENT.PLAYER_JOIN, this._onPlayerJoin.bind(this));
     this.socket.on(_components_socket_Socket__WEBPACK_IMPORTED_MODULE_1__["default"].EVENT.PLAYER_LEAVE, this._onPlayerLeave.bind(this));
     this.input.onKeyDown(["W", "ArrowUp"], () => {
-      this._avatar.faceUp();
+      this._avatar.moveUp();
     });
     this.input.onKeyDown(["A", "ArrowLeft"], () => {
-      this._avatar.faceLeft();
+      this._avatar.moveLeft();
     });
     this.input.onKeyDown(["S", "ArrowDown"], () => {
-      this._avatar.faceDown();
+      this._avatar.moveDown();
     });
     this.input.onKeyDown(["D", "ArrowRight"], () => {
-      this._avatar.faceRight();
+      this._avatar.moveRight();
     });
 
     this._camera.position.set(this._avatar.x, this._avatar.y);
@@ -56328,8 +56328,7 @@ class BattlegroundScene extends _components_structure_Scene__WEBPACK_IMPORTED_MO
   }
 
   update(dt) {
-    this._avatar.x += this._avatar.velocity * this._avatar.direction.x * dt;
-    this._avatar.y += this._avatar.velocity * this._avatar.direction.y * dt;
+    this._world.update(dt);
 
     this._camera.position.set(this._avatar.x, this._avatar.y);
   }
@@ -56413,6 +56412,8 @@ _defineProperty(Terrain, "TILE_SIZE", 128);
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _Terrain__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./Terrain */ "./src/js/scene/battleground/Terrain.js");
 /* harmony import */ var _actors_Vehicle__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./actors/Vehicle */ "./src/js/scene/battleground/actors/Vehicle.js");
+/* harmony import */ var _physics_PhysicsSandbox__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./physics/PhysicsSandbox */ "./src/js/scene/battleground/physics/PhysicsSandbox.js");
+
 
 
 
@@ -56423,6 +56424,8 @@ class WorldContainer extends PIXI.Container {
     super();
     this._terrain = this._createTerrain(mapData.terrain, resources);
     this._actors = this._createActors(playersData);
+    this._physics = this._initPhysics();
+    this._elapsedTime = 0;
   }
 
   getActorByID(actorID) {
@@ -56439,6 +56442,28 @@ class WorldContainer extends PIXI.Container {
   removeActorByID(actorID) {
     this.removeChild(this._actors[actorID]);
     delete this._actors[actorID];
+  }
+
+  update(dt) {
+    this._elapsedTime += dt;
+
+    this._physics.step(this._elapsedTime);
+
+    for (const actorID in this._actors) {
+      const actor = this._actors[actorID];
+      actor.position.set(actor.body.x, actor.body.y);
+    }
+  }
+
+  _initPhysics() {
+    const physics = new _physics_PhysicsSandbox__WEBPACK_IMPORTED_MODULE_2__["default"]();
+
+    for (const actorID in this._actors) {
+      const actor = this._actors[actorID];
+      actor.body = physics.addBody(actor);
+    }
+
+    return physics;
   }
 
   _createTerrain(terrainData, resources) {
@@ -56482,30 +56507,120 @@ __webpack_require__.r(__webpack_exports__);
 class Vehicle extends PIXI.Container {
   constructor() {
     super();
-    this.velocity = 1000;
     this.direction = new Vector(-1, 0);
     this.addChild(new PIXI.Graphics().beginFill(0xffffff).drawCircle(0, 0, 20).endFill());
   }
 
-  faceLeft() {
-    this.direction = new Vector(-1, 0);
+  moveLeft() {
+    this.body.setLinearVelocity(-200, 0);
   }
 
-  faceRight() {
-    this.direction = new Vector(1, 0);
+  moveRight() {
+    this.body.setLinearVelocity(200, 0);
   }
 
-  faceUp() {
-    this.direction = new Vector(0, -1);
+  moveUp() {
+    this.body.setLinearVelocity(0, -200);
   }
 
-  faceDown() {
-    this.direction = new Vector(0, 1);
+  moveDown() {
+    this.body.setLinearVelocity(0, 200);
   }
 
 }
 
 /* harmony default export */ __webpack_exports__["default"] = (Vehicle);
+
+/***/ }),
+
+/***/ "./src/js/scene/battleground/physics/PhysicsBody.js":
+/*!**********************************************************!*\
+  !*** ./src/js/scene/battleground/physics/PhysicsBody.js ***!
+  \**********************************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+
+
+class PhysicsBody {
+  constructor() {
+    this.x = 0;
+    this.y = 0;
+    this.velocity = new Vector(0, 0);
+  }
+
+  setLinearVelocity(x, y) {
+    this.velocity.x = x;
+    this.velocity.y = y;
+  }
+
+}
+
+/* harmony default export */ __webpack_exports__["default"] = (PhysicsBody);
+
+/***/ }),
+
+/***/ "./src/js/scene/battleground/physics/PhysicsSandbox.js":
+/*!*************************************************************!*\
+  !*** ./src/js/scene/battleground/physics/PhysicsSandbox.js ***!
+  \*************************************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */ var _PhysicsBody__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./PhysicsBody */ "./src/js/scene/battleground/physics/PhysicsBody.js");
+
+
+function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
+
+
+
+class PhysicsSandbox {
+  constructor() {
+    this._bodies = [];
+    this._previousTimestamp = 0;
+  }
+
+  step(timestamp) {
+    const deltaTime = timestamp - this._previousTimestamp;
+    const framesCount = deltaTime / PhysicsSandbox.DELTA_TIME;
+
+    for (let i = 0; i < framesCount; i++) {
+      this._bodies.forEach(body => {
+        this._updateState(body, PhysicsSandbox.DELTA_TIME);
+      }, this);
+    }
+
+    this._bodies.forEach(body => {
+      this._updateState(body, deltaTime % PhysicsSandbox.DELTA_TIME);
+    }, this);
+
+    this._previousTimestamp = timestamp;
+  }
+
+  addBody(object) {
+    const body = new _PhysicsBody__WEBPACK_IMPORTED_MODULE_0__["default"]();
+    body.x = object.x;
+    body.y = object.y;
+
+    this._bodies.push(body);
+
+    return body;
+  }
+
+  _updateState(body, dt) {
+    body.x += body.velocity.x * dt;
+    body.y += body.velocity.y * dt;
+  }
+
+}
+
+_defineProperty(PhysicsSandbox, "DELTA_TIME", 1 / 120);
+
+/* harmony default export */ __webpack_exports__["default"] = (PhysicsSandbox);
 
 /***/ }),
 
