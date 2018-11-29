@@ -56143,6 +56143,29 @@ _EventDispatcher__WEBPACK_IMPORTED_MODULE_0__["default"].embedInto(SceneDirector
 
 /***/ }),
 
+/***/ "./src/js/components/socket/Events.js":
+/*!********************************************!*\
+  !*** ./src/js/components/socket/Events.js ***!
+  \********************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+
+
+/* harmony default export */ __webpack_exports__["default"] = ({
+  CONNECTION_ESTABLISHED: "connection established",
+  PLAYER_JOIN: "player enter",
+  PLAYER_LEAVE: "player exit",
+  FIND_ROOM: "find_room",
+  ROOM_FOUND: "room found",
+  STATE_UPDATE: "state_update",
+  STATE_RECEIVED: "state_received"
+});
+
+/***/ }),
+
 /***/ "./src/js/components/socket/Socket.js":
 /*!********************************************!*\
   !*** ./src/js/components/socket/Socket.js ***!
@@ -56154,7 +56177,7 @@ _EventDispatcher__WEBPACK_IMPORTED_MODULE_0__["default"].embedInto(SceneDirector
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var socket_io__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! socket.io */ "./node_modules/socket.io-client/lib/index.js");
 /* harmony import */ var socket_io__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(socket_io__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var _socketEvents__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./socketEvents */ "./src/js/components/socket/socketEvents.js");
+/* harmony import */ var _Events__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./Events */ "./src/js/components/socket/Events.js");
 
 
 function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
@@ -56169,30 +56192,9 @@ class Socket {
 
 }
 
-_defineProperty(Socket, "EVENT", _socketEvents__WEBPACK_IMPORTED_MODULE_1__["default"]);
+_defineProperty(Socket, "EVENT", _Events__WEBPACK_IMPORTED_MODULE_1__["default"]);
 
 /* harmony default export */ __webpack_exports__["default"] = (Socket);
-
-/***/ }),
-
-/***/ "./src/js/components/socket/socketEvents.js":
-/*!**************************************************!*\
-  !*** ./src/js/components/socket/socketEvents.js ***!
-  \**************************************************/
-/*! exports provided: default */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-
-
-/* harmony default export */ __webpack_exports__["default"] = ({
-  CONNECTION_ESTABLISHED: "connection established",
-  PLAYER_JOIN: "player enter",
-  PLAYER_LEAVE: "player exit",
-  FIND_ROOM: "find_room",
-  ROOM_FOUND: "room found"
-});
 
 /***/ }),
 
@@ -56309,17 +56311,26 @@ class BattlegroundScene extends _components_structure_Scene__WEBPACK_IMPORTED_MO
     this._avatar = this._world.getActorByID(this.socket.id);
     this.socket.on(_components_socket_Socket__WEBPACK_IMPORTED_MODULE_1__["default"].EVENT.PLAYER_JOIN, this._onPlayerJoin.bind(this));
     this.socket.on(_components_socket_Socket__WEBPACK_IMPORTED_MODULE_1__["default"].EVENT.PLAYER_LEAVE, this._onPlayerLeave.bind(this));
+    this.socket.on(_components_socket_Socket__WEBPACK_IMPORTED_MODULE_1__["default"].EVENT.STATE_RECEIVED, this._onPlayerStateReceived.bind(this));
     this.input.onKeyDown(["W", "ArrowUp"], () => {
       this._avatar.moveUp();
+
+      this._sendStateUpdate();
     });
     this.input.onKeyDown(["A", "ArrowLeft"], () => {
       this._avatar.moveLeft();
+
+      this._sendStateUpdate();
     });
     this.input.onKeyDown(["S", "ArrowDown"], () => {
       this._avatar.moveDown();
+
+      this._sendStateUpdate();
     });
     this.input.onKeyDown(["D", "ArrowRight"], () => {
       this._avatar.moveRight();
+
+      this._sendStateUpdate();
     });
 
     this._camera.position.set(this._avatar.x, this._avatar.y);
@@ -56338,6 +56349,19 @@ class BattlegroundScene extends _components_structure_Scene__WEBPACK_IMPORTED_MO
     this._camera.viewport.height = height;
   }
 
+  _sendStateUpdate() {
+    this.socket.emit(_components_socket_Socket__WEBPACK_IMPORTED_MODULE_1__["default"].EVENT.STATE_UPDATE, {
+      position: {
+        x: this._avatar.x,
+        y: this._avatar.y
+      },
+      velocity: {
+        x: this._avatar.body.velocity.x,
+        y: this._avatar.body.velocity.y
+      }
+    });
+  }
+
   _onPlayerJoin(data) {
     this._world.spawnActor(data.player);
 
@@ -56348,6 +56372,15 @@ class BattlegroundScene extends _components_structure_Scene__WEBPACK_IMPORTED_MO
     this._world.removeActorByID(data.player.id);
 
     console.log(data.player.id + " disconnected");
+  }
+
+  _onPlayerStateReceived(data) {
+    const playerData = data.player;
+
+    const actor = this._world.getActorByID(playerData.id);
+
+    actor.position.set(playerData.position.x, playerData.position.y);
+    actor.body.setLinearVelocity(playerData.velocity.x, playerData.velocity.y);
   }
 
   _createWorld(mapData, playersData) {

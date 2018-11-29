@@ -14,21 +14,26 @@ class BattlegroundScene extends Scene {
 
         this.socket.on(Socket.EVENT.PLAYER_JOIN, this._onPlayerJoin.bind(this));
         this.socket.on(Socket.EVENT.PLAYER_LEAVE, this._onPlayerLeave.bind(this));
+        this.socket.on(Socket.EVENT.STATE_RECEIVED, this._onPlayerStateReceived.bind(this));
 
         this.input.onKeyDown(["W", "ArrowUp"], () => {
             this._avatar.moveUp();
+            this._sendStateUpdate();
         });
 
         this.input.onKeyDown(["A", "ArrowLeft"], () => {
             this._avatar.moveLeft();
+            this._sendStateUpdate();
         });
 
         this.input.onKeyDown(["S", "ArrowDown"], () => {
             this._avatar.moveDown();
+            this._sendStateUpdate();
         });
 
         this.input.onKeyDown(["D", "ArrowRight"], () => {
             this._avatar.moveRight();
+            this._sendStateUpdate();
         });
 
         this._camera.position.set(this._avatar.x, this._avatar.y);
@@ -45,6 +50,13 @@ class BattlegroundScene extends Scene {
         this._camera.viewport.height = height;
     }
 
+    _sendStateUpdate() {
+        this.socket.emit(Socket.EVENT.STATE_UPDATE, {
+            position: {x: this._avatar.x, y: this._avatar.y},
+            velocity: {x: this._avatar.body.velocity.x, y: this._avatar.body.velocity.y}
+        });
+    }
+
     _onPlayerJoin(data) {
         this._world.spawnActor(data.player);
         console.log(data.player.id + " connected. Spawn on position [" + data.player.position.x + ", " + data.player.position.y + "].");
@@ -53,6 +65,13 @@ class BattlegroundScene extends Scene {
     _onPlayerLeave(data) {
         this._world.removeActorByID(data.player.id);
         console.log(data.player.id + " disconnected");
+    }
+
+    _onPlayerStateReceived(data) {
+        const playerData = data.player;
+        const actor = this._world.getActorByID(playerData.id);
+        actor.position.set(playerData.position.x, playerData.position.y);
+        actor.body.setLinearVelocity(playerData.velocity.x, playerData.velocity.y);
     }
 
     _createWorld(mapData, playersData) {

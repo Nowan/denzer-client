@@ -1,7 +1,7 @@
 "use strict";
 
 import * as io from "socket.io";
-import SOCKET_EVENT from "./socketEvents"
+import SOCKET_EVENT from "./Events"
 
 class Socket {
     constructor() {
