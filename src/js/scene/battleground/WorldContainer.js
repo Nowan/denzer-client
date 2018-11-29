@@ -21,6 +21,7 @@ class WorldContainer extends PIXI.Container {
     spawnActor(playerData) {
         const vehicle = this._createVehicle();
         vehicle.position.set(playerData.position.x, playerData.position.y);
+        vehicle.body = this._physics.addBody(vehicle);
         this._actors[playerData.id] = vehicle;
     }
 

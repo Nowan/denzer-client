@@ -56379,7 +56379,8 @@ class BattlegroundScene extends _components_structure_Scene__WEBPACK_IMPORTED_MO
 
     const actor = this._world.getActorByID(playerData.id);
 
-    actor.position.set(playerData.position.x, playerData.position.y);
+    actor.body.x = playerData.position.x;
+    actor.body.y = playerData.position.y;
     actor.body.setLinearVelocity(playerData.velocity.x, playerData.velocity.y);
   }
 
@@ -56469,6 +56470,7 @@ class WorldContainer extends PIXI.Container {
     const vehicle = this._createVehicle();
 
     vehicle.position.set(playerData.position.x, playerData.position.y);
+    vehicle.body = this._physics.addBody(vehicle);
     this._actors[playerData.id] = vehicle;
   }
 

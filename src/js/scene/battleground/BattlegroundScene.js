@@ -70,7 +70,8 @@ class BattlegroundScene extends Scene {
     _onPlayerStateReceived(data) {
         const playerData = data.player;
         const actor = this._world.getActorByID(playerData.id);
-        actor.position.set(playerData.position.x, playerData.position.y);
+        actor.body.x = playerData.position.x;
+        actor.body.y = playerData.position.y;
         actor.body.setLinearVelocity(playerData.velocity.x, playerData.velocity.y);
     }
 
