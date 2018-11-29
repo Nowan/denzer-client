@@ -2,6 +2,8 @@
 
 import Scene from "../../components/structure/Scene";
 import Socket from "../../components/socket/Socket";
+import Camera from "../../components/Camera";
+
 import Terrain from "./Terrain";
 import Vehicle from "./actors/Vehicle";
 
@@ -10,7 +12,11 @@ class BattlegroundScene extends Scene {
         this._terrain = this._createTerrain(mapData.terrain);
         this._vehicles = this._createVehicles(playersData);
         this._avatar = this._vehicles[this.socket.id];
-
+        
+        this._camera = new Camera(this);
+        this._camera.zoom = 0.5;
+        this._camera.position.set(this._avatar.x, this._avatar.y);
+        
         this.socket.on(Socket.EVENT.PLAYER_JOIN, this._onPlayerJoin.bind(this));
         this.socket.on(Socket.EVENT.PLAYER_LEAVE, this._onPlayerLeave.bind(this));
 
@@ -36,10 +42,12 @@ class BattlegroundScene extends Scene {
     update(dt) {
         this._avatar.x += this._avatar.velocity * this._avatar.direction.x * dt;
         this._avatar.y += this._avatar.velocity * this._avatar.direction.y * dt;
+        this._camera.position.set(this._avatar.x, this._avatar.y);
     }
 
     resize(width, height) {
-        this.scale.set(Math.max(width / this._terrain.bounds.width, height / this._terrain.bounds.height));
+        this._camera.viewport.width = width;
+        this._camera.viewport.height = height;
     }
 
     _onPlayerJoin(data) {

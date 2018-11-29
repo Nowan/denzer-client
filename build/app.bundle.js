@@ -55709,6 +55709,149 @@ class Game extends PIXI.Application {
 
 /***/ }),
 
+/***/ "./src/js/components/Camera.js":
+/*!*************************************!*\
+  !*** ./src/js/components/Camera.js ***!
+  \*************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+
+
+function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
+
+const xSym = Symbol("x");
+const ySym = Symbol("y");
+const zoomSym = Symbol("zoom");
+const viewportSym = Symbol("viewport");
+const worldBoundsSym = Symbol("worldBounds");
+
+class Camera {
+  constructor(world) {
+    this[xSym] = 0;
+    this[ySym] = 0;
+    this[zoomSym] = 1.0;
+    this[viewportSym] = {
+      width: Camera.VIEWPORT_WIDTH,
+      height: Camera.VIEWPORT_HEIGHT,
+      scale: {
+        fill: 1.0,
+        fit: 1.0
+      }
+    };
+    this[worldBoundsSym] = {
+      width: world.width,
+      height: world.height
+    };
+    Object.defineProperties(this, {
+      x: {
+        get: (() => {
+          return this[xSym];
+        }).bind(this),
+        set: (value => {
+          this[xSym] = value;
+          updateWorldX(this, world);
+        }).bind(this)
+      },
+      y: {
+        get: (() => {
+          return this[ySym];
+        }).bind(this),
+        set: (value => {
+          this[ySym] = value;
+          updateWorldY(this, world);
+        }).bind(this)
+      },
+      zoom: {
+        get: (() => {
+          return this[zoomSym];
+        }).bind(this),
+        set: (value => {
+          this[zoomSym] = value;
+          updateWorldScale(this, world);
+        }).bind(this)
+      },
+      viewport: {
+        value: {}
+      },
+      position: {
+        value: {}
+      }
+    });
+    Object.defineProperties(this.viewport, {
+      width: {
+        get: (() => {
+          return this[viewportSym].width;
+        }).bind(this),
+        set: (value => {
+          this[viewportSym].width = value;
+          updateCameraViewport(this, world);
+        }).bind(this)
+      },
+      height: {
+        get: (() => {
+          return this[viewportSym].height;
+        }).bind(this),
+        set: (value => {
+          this[viewportSym].height = value;
+          updateCameraViewport(this, world);
+        }).bind(this)
+      },
+      scale: {
+        get: (() => {
+          return this[viewportSym].scale;
+        }).bind(this)
+      }
+    });
+    Object.defineProperties(this.position, {
+      get: {
+        value: (() => {
+          return new PIXI.Point(this[xSym], this[ySym]);
+        }).bind(this)
+      },
+      set: {
+        value: ((x, y) => {
+          this[xSym] = x;
+          this[ySym] = y;
+          updateWorldX(this, world);
+          updateWorldY(this, world);
+        }).bind(this)
+      }
+    });
+  }
+
+}
+
+_defineProperty(Camera, "VIEWPORT_WIDTH", 800);
+
+_defineProperty(Camera, "VIEWPORT_HEIGHT", 600);
+
+function updateCameraViewport(camera, world) {
+  camera.viewport.scale.fill = Math.max(camera.viewport.width / Camera.VIEWPORT_WIDTH, camera.viewport.height / Camera.VIEWPORT_HEIGHT);
+  camera.viewport.scale.fit = Math.min(Camera.VIEWPORT_WIDTH / camera.viewport.width, Camera.VIEWPORT_HEIGHT / camera.viewport.height);
+  updateWorldScale(camera, world);
+}
+
+function updateWorldScale(camera, world) {
+  world.scale.set(camera.zoom * camera.viewport.scale.fill);
+  updateWorldX(camera, world);
+  updateWorldY(camera, world);
+}
+
+function updateWorldX(camera, world) {
+  world.x = camera.viewport.width * 0.5 - camera.x * camera.zoom * camera.viewport.scale.fill;
+}
+
+function updateWorldY(camera, world) {
+  world.y = camera.viewport.height * 0.5 - camera.y * camera.zoom * camera.viewport.scale.fill;
+}
+
+/* harmony default export */ __webpack_exports__["default"] = (Camera);
+
+/***/ }),
+
 /***/ "./src/js/components/EventDispatcher.js":
 /*!**********************************************!*\
   !*** ./src/js/components/EventDispatcher.js ***!
@@ -56144,8 +56287,10 @@ class Scene extends PIXI.Container {
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _components_structure_Scene__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../../components/structure/Scene */ "./src/js/components/structure/Scene.js");
 /* harmony import */ var _components_socket_Socket__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../../components/socket/Socket */ "./src/js/components/socket/Socket.js");
-/* harmony import */ var _Terrain__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./Terrain */ "./src/js/scene/battleground/Terrain.js");
-/* harmony import */ var _actors_Vehicle__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./actors/Vehicle */ "./src/js/scene/battleground/actors/Vehicle.js");
+/* harmony import */ var _components_Camera__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../../components/Camera */ "./src/js/components/Camera.js");
+/* harmony import */ var _Terrain__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./Terrain */ "./src/js/scene/battleground/Terrain.js");
+/* harmony import */ var _actors_Vehicle__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./actors/Vehicle */ "./src/js/scene/battleground/actors/Vehicle.js");
+
 
 
 
@@ -56158,6 +56303,11 @@ class BattlegroundScene extends _components_structure_Scene__WEBPACK_IMPORTED_MO
     this._terrain = this._createTerrain(mapData.terrain);
     this._vehicles = this._createVehicles(playersData);
     this._avatar = this._vehicles[this.socket.id];
+    this._camera = new _components_Camera__WEBPACK_IMPORTED_MODULE_2__["default"](this);
+    this._camera.zoom = 0.5;
+
+    this._camera.position.set(this._avatar.x, this._avatar.y);
+
     this.socket.on(_components_socket_Socket__WEBPACK_IMPORTED_MODULE_1__["default"].EVENT.PLAYER_JOIN, this._onPlayerJoin.bind(this));
     this.socket.on(_components_socket_Socket__WEBPACK_IMPORTED_MODULE_1__["default"].EVENT.PLAYER_LEAVE, this._onPlayerLeave.bind(this));
     this.input.onKeyDown("w", () => {
@@ -56178,10 +56328,13 @@ class BattlegroundScene extends _components_structure_Scene__WEBPACK_IMPORTED_MO
   update(dt) {
     this._avatar.x += this._avatar.velocity * this._avatar.direction.x * dt;
     this._avatar.y += this._avatar.velocity * this._avatar.direction.y * dt;
+
+    this._camera.position.set(this._avatar.x, this._avatar.y);
   }
 
   resize(width, height) {
-    this.scale.set(Math.max(width / this._terrain.bounds.width, height / this._terrain.bounds.height));
+    this._camera.viewport.width = width;
+    this._camera.viewport.height = height;
   }
 
   _onPlayerJoin(data) {
@@ -56199,7 +56352,7 @@ class BattlegroundScene extends _components_structure_Scene__WEBPACK_IMPORTED_MO
   }
 
   _createTerrain(terrainData) {
-    return this.addChild(new _Terrain__WEBPACK_IMPORTED_MODULE_2__["default"](terrainData, this.resources["/assets/images/grassfield.json"]));
+    return this.addChild(new _Terrain__WEBPACK_IMPORTED_MODULE_3__["default"](terrainData, this.resources["/assets/images/grassfield.json"]));
   }
 
   _createVehicles(playersData) {
@@ -56216,7 +56369,7 @@ class BattlegroundScene extends _components_structure_Scene__WEBPACK_IMPORTED_MO
   }
 
   _createVehicle() {
-    return this.addChild(new _actors_Vehicle__WEBPACK_IMPORTED_MODULE_3__["default"]());
+    return this.addChild(new _actors_Vehicle__WEBPACK_IMPORTED_MODULE_4__["default"]());
   }
 
 }
