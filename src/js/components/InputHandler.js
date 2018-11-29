@@ -12,7 +12,14 @@ class InputHandler {
     }
 
     onKeyDown(key, callback) {
-        this.on(key.toLowerCase() + "/down", callback);
+        if (Array.isArray(key)) {
+            key.forEach((key) => {
+                this.on(key.toLowerCase() + "/down", callback);
+            }, this);
+        }
+        else {
+            this.on(key.toLowerCase() + "/down", callback);
+        }
     }
 }
 

@@ -55953,7 +55953,13 @@ class InputHandler {
   }
 
   onKeyDown(key, callback) {
-    this.on(key.toLowerCase() + "/down", callback);
+    if (Array.isArray(key)) {
+      key.forEach(key => {
+        this.on(key.toLowerCase() + "/down", callback);
+      }, this);
+    } else {
+      this.on(key.toLowerCase() + "/down", callback);
+    }
   }
 
 }
@@ -56310,16 +56316,16 @@ class BattlegroundScene extends _components_structure_Scene__WEBPACK_IMPORTED_MO
 
     this.socket.on(_components_socket_Socket__WEBPACK_IMPORTED_MODULE_1__["default"].EVENT.PLAYER_JOIN, this._onPlayerJoin.bind(this));
     this.socket.on(_components_socket_Socket__WEBPACK_IMPORTED_MODULE_1__["default"].EVENT.PLAYER_LEAVE, this._onPlayerLeave.bind(this));
-    this.input.onKeyDown("w", () => {
+    this.input.onKeyDown(["W", "ArrowUp"], () => {
       this._avatar.faceUp();
     });
-    this.input.onKeyDown("a", () => {
+    this.input.onKeyDown(["A", "ArrowLeft"], () => {
       this._avatar.faceLeft();
     });
-    this.input.onKeyDown("s", () => {
+    this.input.onKeyDown(["S", "ArrowDown"], () => {
       this._avatar.faceDown();
     });
-    this.input.onKeyDown("d", () => {
+    this.input.onKeyDown(["D", "ArrowRight"], () => {
       this._avatar.faceRight();
     });
     this.resize(this.renderer.width, this.renderer.height);

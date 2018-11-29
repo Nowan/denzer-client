@@ -20,19 +20,19 @@ class BattlegroundScene extends Scene {
         this.socket.on(Socket.EVENT.PLAYER_JOIN, this._onPlayerJoin.bind(this));
         this.socket.on(Socket.EVENT.PLAYER_LEAVE, this._onPlayerLeave.bind(this));
 
-        this.input.onKeyDown("w", () => {
+        this.input.onKeyDown(["W", "ArrowUp"], () => {
             this._avatar.faceUp();
         });
 
-        this.input.onKeyDown("a", () => {
+        this.input.onKeyDown(["A", "ArrowLeft"], () => {
             this._avatar.faceLeft();
         });
 
-        this.input.onKeyDown("s", () => {
+        this.input.onKeyDown(["S", "ArrowDown"], () => {
             this._avatar.faceDown();
         });
 
-        this.input.onKeyDown("d", () => {
+        this.input.onKeyDown(["D", "ArrowRight"], () => {
             this._avatar.faceRight();
         });
 
