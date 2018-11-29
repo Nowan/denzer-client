@@ -1,6 +1,6 @@
 "use strict";
 
-import EventDispatcher from "./structure/EventDispatcher";
+import EventDispatcher from "./EventDispatcher";
 
 class InputHandler {
     constructor() {

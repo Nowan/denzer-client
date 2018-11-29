@@ -1,6 +1,6 @@
 "use strict";
 
-import Interface from "./Interface";
+import Interface from "./structure/Interface";
 
 class EventDispatcher extends Interface {
     static embedInto(Class) {
