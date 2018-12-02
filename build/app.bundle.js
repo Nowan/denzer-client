@@ -56187,7 +56187,11 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
 
 class Socket {
   constructor() {
-    return socket_io__WEBPACK_IMPORTED_MODULE_0__();
+    return socket_io__WEBPACK_IMPORTED_MODULE_0__({
+      query: {
+        timeProbe: Date.now()
+      }
+    });
   }
 
 }

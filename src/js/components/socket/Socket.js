@@ -5,7 +5,11 @@ import SOCKET_EVENT from "./Events"
 
 class Socket {
     constructor() {
-        return io();
+        return io({
+            query: {
+                timeProbe: Date.now()
+            }
+        });
     }
 
     static EVENT = SOCKET_EVENT;
