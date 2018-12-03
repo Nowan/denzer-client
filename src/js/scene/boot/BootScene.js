@@ -19,11 +19,18 @@ class BootScene extends Scene {
     }
 
     init() {
-        this.socket.on(Socket.EVENT.ROOM_FOUND, ((data) => {
-            this.director.goTo("Battleground", [data.map, data.players]);
-        }).bind(this));
+        this.service.get("/authorize").then((playerData) => {
+            const playerID = playerData.id;
+            this.service.get("/findRoom?playerID=" + playerID).then((roomData) => {
+                const socket = new Socket("/" + roomData.id, {
+                    query: {
+                        playerID
+                    }
+                });
 
-        this.socket.emit(Socket.EVENT.FIND_ROOM);
+                this.director.goTo("Battleground", [roomData, playerID, socket]);
+            });
+        })
     }
 }
 

@@ -4,6 +4,7 @@ import ResourceRegistry from "./components/ResourceRegistry";
 import ResourceLoader from "./components/ResourceLoader";
 import SceneDirector from "./components/SceneDirector";
 import InputHandler from "./components/InputHandler";
+import Service from "./components/Service";
 import Socket from "./components/socket/Socket";
 
 import BootScene from "./scene/boot/BootScene";
@@ -16,15 +17,13 @@ class Game extends PIXI.Application {
         this._resources = new ResourceRegistry();
         this._loader = new ResourceLoader(this._resources);
         this._sceneDirector = new SceneDirector(this.stage);
-        this._socket = new Socket();
+        this._service = new Service("http://192.168.0.107:3000");
         this._inputHandler = new InputHandler();
 
         this._setUpSceneDecorator();
         this._registerScenes();
 
-        this._socket.on(Socket.EVENT.CONNECTION_ESTABLISHED, () => {
-            this._sceneDirector.goTo("Boot");
-        });
+        this._sceneDirector.goTo("Boot");
     }
 
     refresh() {
@@ -44,7 +43,7 @@ class Game extends PIXI.Application {
             Object.defineProperty(scene, "resources", {get: () => {return game._resources}});
             Object.defineProperty(scene, "loader", {get: () => {return game._loader}});
             Object.defineProperty(scene, "director", {get: () => {return game._sceneDirector}});
-            Object.defineProperty(scene, "socket", {get: () => {return game._socket}});
+            Object.defineProperty(scene, "service", {get: () => {return game._service}});
             Object.defineProperty(scene, "input", {get: () => {return game._inputHandler}});
         });
     }

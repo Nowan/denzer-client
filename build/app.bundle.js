@@ -55619,9 +55619,11 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _components_ResourceLoader__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./components/ResourceLoader */ "./src/js/components/ResourceLoader.js");
 /* harmony import */ var _components_SceneDirector__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./components/SceneDirector */ "./src/js/components/SceneDirector.js");
 /* harmony import */ var _components_InputHandler__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./components/InputHandler */ "./src/js/components/InputHandler.js");
-/* harmony import */ var _components_socket_Socket__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./components/socket/Socket */ "./src/js/components/socket/Socket.js");
-/* harmony import */ var _scene_boot_BootScene__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./scene/boot/BootScene */ "./src/js/scene/boot/BootScene.js");
-/* harmony import */ var _scene_battleground_BattlegroundScene__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ./scene/battleground/BattlegroundScene */ "./src/js/scene/battleground/BattlegroundScene.js");
+/* harmony import */ var _components_Service__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./components/Service */ "./src/js/components/Service.js");
+/* harmony import */ var _components_socket_Socket__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./components/socket/Socket */ "./src/js/components/socket/Socket.js");
+/* harmony import */ var _scene_boot_BootScene__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ./scene/boot/BootScene */ "./src/js/scene/boot/BootScene.js");
+/* harmony import */ var _scene_battleground_BattlegroundScene__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! ./scene/battleground/BattlegroundScene */ "./src/js/scene/battleground/BattlegroundScene.js");
+
 
 
 
@@ -55642,16 +55644,14 @@ class Game extends PIXI.Application {
     this._resources = new _components_ResourceRegistry__WEBPACK_IMPORTED_MODULE_0__["default"]();
     this._loader = new _components_ResourceLoader__WEBPACK_IMPORTED_MODULE_1__["default"](this._resources);
     this._sceneDirector = new _components_SceneDirector__WEBPACK_IMPORTED_MODULE_2__["default"](this.stage);
-    this._socket = new _components_socket_Socket__WEBPACK_IMPORTED_MODULE_4__["default"]();
+    this._service = new _components_Service__WEBPACK_IMPORTED_MODULE_4__["default"]("http://192.168.0.107:3000");
     this._inputHandler = new _components_InputHandler__WEBPACK_IMPORTED_MODULE_3__["default"]();
 
     this._setUpSceneDecorator();
 
     this._registerScenes();
 
-    this._socket.on(_components_socket_Socket__WEBPACK_IMPORTED_MODULE_4__["default"].EVENT.CONNECTION_ESTABLISHED, () => {
-      this._sceneDirector.goTo("Boot");
-    });
+    this._sceneDirector.goTo("Boot");
   }
 
   refresh() {
@@ -55661,9 +55661,9 @@ class Game extends PIXI.Application {
   }
 
   _registerScenes() {
-    this._sceneDirector.register("Boot", _scene_boot_BootScene__WEBPACK_IMPORTED_MODULE_5__["default"]);
+    this._sceneDirector.register("Boot", _scene_boot_BootScene__WEBPACK_IMPORTED_MODULE_6__["default"]);
 
-    this._sceneDirector.register("Battleground", _scene_battleground_BattlegroundScene__WEBPACK_IMPORTED_MODULE_6__["default"]);
+    this._sceneDirector.register("Battleground", _scene_battleground_BattlegroundScene__WEBPACK_IMPORTED_MODULE_7__["default"]);
   }
 
   _setUpSceneDecorator() {
@@ -55690,9 +55690,9 @@ class Game extends PIXI.Application {
           return game._sceneDirector;
         }
       });
-      Object.defineProperty(scene, "socket", {
+      Object.defineProperty(scene, "service", {
         get: () => {
-          return game._socket;
+          return game._service;
         }
       });
       Object.defineProperty(scene, "input", {
@@ -56143,6 +56143,60 @@ _EventDispatcher__WEBPACK_IMPORTED_MODULE_0__["default"].embedInto(SceneDirector
 
 /***/ }),
 
+/***/ "./src/js/components/Service.js":
+/*!**************************************!*\
+  !*** ./src/js/components/Service.js ***!
+  \**************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+
+
+function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
+
+class Service {
+  constructor(baseUrl) {
+    _defineProperty(this, "_createRequest", function (accessMethod, url) {
+      const request = new XMLHttpRequest();
+      request.open(accessMethod, url, true);
+      return request;
+    });
+
+    this._baseUrl = baseUrl;
+  }
+
+  async get(endpoint) {
+    return this._sendRequest("GET", endpoint);
+  }
+
+  async post(endpoint) {
+    return this._sendRequest("POST", endpoint);
+  }
+
+  async _sendRequest(accessMethod, endpoint, body) {
+    return new Promise(((resolve, reject) => {
+      const request = this._createRequest(accessMethod, this._baseUrl + endpoint);
+
+      request.send(body);
+
+      request.onload = function () {
+        if (request.status >= 200 && request.status < 300) {
+          resolve(JSON.parse(request.response));
+        } else {
+          reject(request.response);
+        }
+      };
+    }).bind(this));
+  }
+
+}
+
+/* harmony default export */ __webpack_exports__["default"] = (Service);
+
+/***/ }),
+
 /***/ "./src/js/components/socket/Events.js":
 /*!********************************************!*\
   !*** ./src/js/components/socket/Events.js ***!
@@ -56156,8 +56210,8 @@ __webpack_require__.r(__webpack_exports__);
 
 /* harmony default export */ __webpack_exports__["default"] = ({
   CONNECTION_ESTABLISHED: "connection established",
-  PLAYER_JOIN: "player enter",
-  PLAYER_LEAVE: "player exit",
+  PLAYER_JOIN: "player_join",
+  PLAYER_LEAVE: "player_leave",
   FIND_ROOM: "find_room",
   ROOM_FOUND: "room found",
   STATE_CHANGED: "state_changed",
@@ -56187,12 +56241,8 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
 
 
 class Socket {
-  constructor() {
-    return socket_io__WEBPACK_IMPORTED_MODULE_0__({
-      query: {
-        timeProbe: Date.now()
-      }
-    });
+  constructor(namespace, params) {
+    return socket_io__WEBPACK_IMPORTED_MODULE_0__(namespace, params);
   }
 
 }
@@ -56310,16 +56360,20 @@ __webpack_require__.r(__webpack_exports__);
 
 
 class BattlegroundScene extends _components_structure_Scene__WEBPACK_IMPORTED_MODULE_0__["default"] {
-  init(mapData, playersData) {
-    this._world = this._createWorld(mapData, playersData);
+  init(roomData, playerID, socket) {
+    this._world = this._createWorld(roomData.map, roomData.players);
     this._camera = this._createCamera(this._world);
-    this._avatar = this._world.getActorByID(this.socket.id);
-    this.socket.on(_components_socket_Socket__WEBPACK_IMPORTED_MODULE_1__["default"].EVENT.PLAYER_JOIN, this._onPlayerJoin.bind(this));
-    this.socket.on(_components_socket_Socket__WEBPACK_IMPORTED_MODULE_1__["default"].EVENT.PLAYER_LEAVE, this._onPlayerLeave.bind(this));
-    this.socket.on(_components_socket_Socket__WEBPACK_IMPORTED_MODULE_1__["default"].EVENT.STATE_RECEIVED, this._onPlayerStateReceived.bind(this));
-    this.socket.on("state_update", data => {
-      console.log(data);
-    });
+    this._avatar = this._world.getActorByID(playerID);
+    this._socket = socket;
+
+    this._socket.on(_components_socket_Socket__WEBPACK_IMPORTED_MODULE_1__["default"].EVENT.PLAYER_JOIN, this._onPlayerJoin.bind(this));
+
+    this._socket.on(_components_socket_Socket__WEBPACK_IMPORTED_MODULE_1__["default"].EVENT.PLAYER_LEAVE, this._onPlayerLeave.bind(this));
+
+    this._socket.on(_components_socket_Socket__WEBPACK_IMPORTED_MODULE_1__["default"].EVENT.STATE_RECEIVED, this._onPlayerStateReceived.bind(this));
+
+    this._socket.on(_components_socket_Socket__WEBPACK_IMPORTED_MODULE_1__["default"].EVENT.STATE_UPDATE, this._onStateUpdate.bind(this));
+
     this.input.onKeyDown(["W", "ArrowUp"], () => {
       this._avatar.moveUp();
 
@@ -56358,7 +56412,7 @@ class BattlegroundScene extends _components_structure_Scene__WEBPACK_IMPORTED_MO
   }
 
   _sendStateChanged() {
-    this.socket.emit(_components_socket_Socket__WEBPACK_IMPORTED_MODULE_1__["default"].EVENT.STATE_CHANGED, {
+    this._socket.emit(_components_socket_Socket__WEBPACK_IMPORTED_MODULE_1__["default"].EVENT.STATE_CHANGED, {
       position: {
         x: this._avatar.x,
         y: this._avatar.y
@@ -56370,21 +56424,19 @@ class BattlegroundScene extends _components_structure_Scene__WEBPACK_IMPORTED_MO
     });
   }
 
-  _onPlayerJoin(data) {
-    this._world.spawnActor(data.player);
+  _onPlayerJoin(playerData) {
+    this._world.spawnActor(playerData);
 
-    console.log(data.player[0] + " connected. Spawn on position [" + data.player[1] + ", " + data.player[2] + "].");
+    console.log(playerData[0] + " connected. Spawn on position [" + playerData[1] + ", " + playerData[2] + "].");
   }
 
-  _onPlayerLeave(data) {
-    this._world.removeActorByID(data.player.id);
+  _onPlayerLeave(playerData) {
+    this._world.removeActorByID(playerData[0]);
 
-    console.log(data.player[0] + " disconnected");
+    console.log(playerData[0] + " disconnected");
   }
 
-  _onPlayerStateReceived(data) {
-    const playerData = data.player;
-
+  _onPlayerStateReceived(playerData) {
     const actor = this._world.getActorByID(playerData[0]);
 
     actor.body.setPosition(playerData[1], playerData[2]);
@@ -56392,7 +56444,14 @@ class BattlegroundScene extends _components_structure_Scene__WEBPACK_IMPORTED_MO
   }
 
   _onStateUpdate(data) {
-    console.log(data);
+    for (const playerID in data) {
+      const playerData = data[playerID];
+
+      const actor = this._world.getActorByID(playerData[0]);
+
+      actor.body.setPosition(playerData[1], playerData[2]);
+      actor.body.setLinearVelocity(playerData[3], playerData[4]);
+    }
   }
 
   _createWorld(mapData, playersData) {
@@ -56701,10 +56760,17 @@ class BootScene extends _components_structure_Scene__WEBPACK_IMPORTED_MODULE_0__
   }
 
   init() {
-    this.socket.on(_components_socket_Socket__WEBPACK_IMPORTED_MODULE_1__["default"].EVENT.ROOM_FOUND, (data => {
-      this.director.goTo("Battleground", [data.map, data.players]);
-    }).bind(this));
-    this.socket.emit(_components_socket_Socket__WEBPACK_IMPORTED_MODULE_1__["default"].EVENT.FIND_ROOM);
+    this.service.get("/authorize").then(playerData => {
+      const playerID = playerData.id;
+      this.service.get("/findRoom?playerID=" + playerID).then(roomData => {
+        const socket = new _components_socket_Socket__WEBPACK_IMPORTED_MODULE_1__["default"]("/" + roomData.id, {
+          query: {
+            playerID
+          }
+        });
+        this.director.goTo("Battleground", [roomData, playerID, socket]);
+      });
+    });
   }
 
 }

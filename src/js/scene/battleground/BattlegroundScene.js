@@ -7,15 +7,16 @@ import Camera from "../../components/Camera";
 import WorldContainer from "./WorldContainer";
 
 class BattlegroundScene extends Scene {
-    init(mapData, playersData) {
-        this._world = this._createWorld(mapData, playersData);
+    init(roomData, playerID, socket) {
+        this._world = this._createWorld(roomData.map, roomData.players);
         this._camera = this._createCamera(this._world)
-        this._avatar = this._world.getActorByID(this.socket.id);
+        this._avatar = this._world.getActorByID(playerID);
+        this._socket = socket;
 
-        this.socket.on(Socket.EVENT.PLAYER_JOIN, this._onPlayerJoin.bind(this));
-        this.socket.on(Socket.EVENT.PLAYER_LEAVE, this._onPlayerLeave.bind(this));
-        this.socket.on(Socket.EVENT.STATE_RECEIVED, this._onPlayerStateReceived.bind(this));
-        this.socket.on("state_update", (data) => {console.log(data)});
+        this._socket.on(Socket.EVENT.PLAYER_JOIN, this._onPlayerJoin.bind(this));
+        this._socket.on(Socket.EVENT.PLAYER_LEAVE, this._onPlayerLeave.bind(this));
+        this._socket.on(Socket.EVENT.STATE_RECEIVED, this._onPlayerStateReceived.bind(this));
+        this._socket.on(Socket.EVENT.STATE_UPDATE, this._onStateUpdate.bind(this));
 
         this.input.onKeyDown(["W", "ArrowUp"], () => {
             this._avatar.moveUp();
@@ -52,31 +53,35 @@ class BattlegroundScene extends Scene {
     }
 
     _sendStateChanged() {
-        this.socket.emit(Socket.EVENT.STATE_CHANGED, {
+        this._socket.emit(Socket.EVENT.STATE_CHANGED, {
             position: {x: this._avatar.x, y: this._avatar.y},
             velocity: {x: this._avatar.body.velocity.x, y: this._avatar.body.velocity.y}
         });
     }
 
-    _onPlayerJoin(data) {
-        this._world.spawnActor(data.player);
-        console.log(data.player[0] + " connected. Spawn on position [" + data.player[1] + ", " + data.player[2] + "].");
+    _onPlayerJoin(playerData) {
+        this._world.spawnActor(playerData);
+        console.log(playerData[0] + " connected. Spawn on position [" + playerData[1] + ", " + playerData[2] + "].");
     }
 
-    _onPlayerLeave(data) {
-        this._world.removeActorByID(data.player.id);
-        console.log(data.player[0] + " disconnected");
+    _onPlayerLeave(playerData) {
+        this._world.removeActorByID(playerData[0]);
+        console.log(playerData[0] + " disconnected");
     }
 
-    _onPlayerStateReceived(data) {
-        const playerData = data.player;
+    _onPlayerStateReceived(playerData) {
         const actor = this._world.getActorByID(playerData[0]);
         actor.body.setPosition(playerData[1], playerData[2]);
         actor.body.setLinearVelocity(playerData[3], playerData[4]);
     }
 
     _onStateUpdate(data) {
-        console.log(data);
+        for (const playerID in data) {
+            const playerData = data[playerID];
+            const actor = this._world.getActorByID(playerData[0]);
+            actor.body.setPosition(playerData[1], playerData[2]);
+            actor.body.setLinearVelocity(playerData[3], playerData[4]);
+        }
     }
 
     _createWorld(mapData, playersData) {
