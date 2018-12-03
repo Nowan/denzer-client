@@ -56160,6 +56160,7 @@ __webpack_require__.r(__webpack_exports__);
   PLAYER_LEAVE: "player exit",
   FIND_ROOM: "find_room",
   ROOM_FOUND: "room found",
+  STATE_CHANGED: "state_changed",
   STATE_UPDATE: "state_update",
   STATE_RECEIVED: "state_received"
 });
@@ -56316,25 +56317,28 @@ class BattlegroundScene extends _components_structure_Scene__WEBPACK_IMPORTED_MO
     this.socket.on(_components_socket_Socket__WEBPACK_IMPORTED_MODULE_1__["default"].EVENT.PLAYER_JOIN, this._onPlayerJoin.bind(this));
     this.socket.on(_components_socket_Socket__WEBPACK_IMPORTED_MODULE_1__["default"].EVENT.PLAYER_LEAVE, this._onPlayerLeave.bind(this));
     this.socket.on(_components_socket_Socket__WEBPACK_IMPORTED_MODULE_1__["default"].EVENT.STATE_RECEIVED, this._onPlayerStateReceived.bind(this));
+    this.socket.on("state_update", data => {
+      console.log(data);
+    });
     this.input.onKeyDown(["W", "ArrowUp"], () => {
       this._avatar.moveUp();
 
-      this._sendStateUpdate();
+      this._sendStateChanged();
     });
     this.input.onKeyDown(["A", "ArrowLeft"], () => {
       this._avatar.moveLeft();
 
-      this._sendStateUpdate();
+      this._sendStateChanged();
     });
     this.input.onKeyDown(["S", "ArrowDown"], () => {
       this._avatar.moveDown();
 
-      this._sendStateUpdate();
+      this._sendStateChanged();
     });
     this.input.onKeyDown(["D", "ArrowRight"], () => {
       this._avatar.moveRight();
 
-      this._sendStateUpdate();
+      this._sendStateChanged();
     });
 
     this._camera.position.set(this._avatar.x, this._avatar.y);
@@ -56353,8 +56357,8 @@ class BattlegroundScene extends _components_structure_Scene__WEBPACK_IMPORTED_MO
     this._camera.viewport.height = height;
   }
 
-  _sendStateUpdate() {
-    this.socket.emit(_components_socket_Socket__WEBPACK_IMPORTED_MODULE_1__["default"].EVENT.STATE_UPDATE, {
+  _sendStateChanged() {
+    this.socket.emit(_components_socket_Socket__WEBPACK_IMPORTED_MODULE_1__["default"].EVENT.STATE_CHANGED, {
       position: {
         x: this._avatar.x,
         y: this._avatar.y
@@ -56369,23 +56373,26 @@ class BattlegroundScene extends _components_structure_Scene__WEBPACK_IMPORTED_MO
   _onPlayerJoin(data) {
     this._world.spawnActor(data.player);
 
-    console.log(data.player.id + " connected. Spawn on position [" + data.player.position.x + ", " + data.player.position.y + "].");
+    console.log(data.player[0] + " connected. Spawn on position [" + data.player[1] + ", " + data.player[2] + "].");
   }
 
   _onPlayerLeave(data) {
     this._world.removeActorByID(data.player.id);
 
-    console.log(data.player.id + " disconnected");
+    console.log(data.player[0] + " disconnected");
   }
 
   _onPlayerStateReceived(data) {
     const playerData = data.player;
 
-    const actor = this._world.getActorByID(playerData.id);
+    const actor = this._world.getActorByID(playerData[0]);
 
-    actor.body.x = playerData.position.x;
-    actor.body.y = playerData.position.y;
-    actor.body.setLinearVelocity(playerData.velocity.x, playerData.velocity.y);
+    actor.body.setPosition(playerData[1], playerData[2]);
+    actor.body.setLinearVelocity(playerData[3], playerData[4]);
+  }
+
+  _onStateUpdate(data) {
+    console.log(data);
   }
 
   _createWorld(mapData, playersData) {
@@ -56473,9 +56480,9 @@ class WorldContainer extends PIXI.Container {
   spawnActor(playerData) {
     const vehicle = this._createVehicle();
 
-    vehicle.position.set(playerData.position.x, playerData.position.y);
+    vehicle.position.set(playerData[1], playerData[2]);
     vehicle.body = this._physics.addBody(vehicle);
-    this._actors[playerData.id] = vehicle;
+    this._actors[playerData[0]] = vehicle;
   }
 
   removeActorByID(actorID) {
@@ -56515,8 +56522,9 @@ class WorldContainer extends PIXI.Container {
     for (const playerData of playersData) {
       const actor = this._createVehicle();
 
-      actor.position.set(playerData.position.x, playerData.position.y);
-      actors[playerData.id] = actor;
+      const playerID = playerData[0];
+      actor.position.set(playerData[1], playerData[2]);
+      actors[playerID] = actor;
     }
 
     return actors;
@@ -56590,6 +56598,11 @@ class PhysicsBody {
     this.velocity = new Vector(0, 0);
   }
 
+  setPosition(x, y) {
+    this.x = x;
+    this.y = y;
+  }
+
   setLinearVelocity(x, y) {
     this.velocity.x = x;
     this.velocity.y = y;
@@ -56650,9 +56663,8 @@ class PhysicsSandbox {
     return body;
   }
 
-  _updateState(body, dt) {
-    body.x += body.velocity.x * dt;
-    body.y += body.velocity.y * dt;
+  _updateState(body, dt) {//body.x += body.velocity.x * dt;
+    //body.y += body.velocity.y * dt;
   }
 
 }

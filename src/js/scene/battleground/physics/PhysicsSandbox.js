@@ -36,8 +36,8 @@ class PhysicsSandbox {
     }
 
     _updateState(body, dt) {
-        body.x += body.velocity.x * dt;
-        body.y += body.velocity.y * dt;
+        //body.x += body.velocity.x * dt;
+        //body.y += body.velocity.y * dt;
     }
 }
 

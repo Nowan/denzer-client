@@ -15,25 +15,26 @@ class BattlegroundScene extends Scene {
         this.socket.on(Socket.EVENT.PLAYER_JOIN, this._onPlayerJoin.bind(this));
         this.socket.on(Socket.EVENT.PLAYER_LEAVE, this._onPlayerLeave.bind(this));
         this.socket.on(Socket.EVENT.STATE_RECEIVED, this._onPlayerStateReceived.bind(this));
+        this.socket.on("state_update", (data) => {console.log(data)});
 
         this.input.onKeyDown(["W", "ArrowUp"], () => {
             this._avatar.moveUp();
-            this._sendStateUpdate();
+            this._sendStateChanged();
         });
 
         this.input.onKeyDown(["A", "ArrowLeft"], () => {
             this._avatar.moveLeft();
-            this._sendStateUpdate();
+            this._sendStateChanged();
         });
 
         this.input.onKeyDown(["S", "ArrowDown"], () => {
             this._avatar.moveDown();
-            this._sendStateUpdate();
+            this._sendStateChanged();
         });
 
         this.input.onKeyDown(["D", "ArrowRight"], () => {
             this._avatar.moveRight();
-            this._sendStateUpdate();
+            this._sendStateChanged();
         });
 
         this._camera.position.set(this._avatar.x, this._avatar.y);
@@ -50,8 +51,8 @@ class BattlegroundScene extends Scene {
         this._camera.viewport.height = height;
     }
 
-    _sendStateUpdate() {
-        this.socket.emit(Socket.EVENT.STATE_UPDATE, {
+    _sendStateChanged() {
+        this.socket.emit(Socket.EVENT.STATE_CHANGED, {
             position: {x: this._avatar.x, y: this._avatar.y},
             velocity: {x: this._avatar.body.velocity.x, y: this._avatar.body.velocity.y}
         });
@@ -59,20 +60,23 @@ class BattlegroundScene extends Scene {
 
     _onPlayerJoin(data) {
         this._world.spawnActor(data.player);
-        console.log(data.player.id + " connected. Spawn on position [" + data.player.position.x + ", " + data.player.position.y + "].");
+        console.log(data.player[0] + " connected. Spawn on position [" + data.player[1] + ", " + data.player[2] + "].");
     }
 
     _onPlayerLeave(data) {
         this._world.removeActorByID(data.player.id);
-        console.log(data.player.id + " disconnected");
+        console.log(data.player[0] + " disconnected");
     }
 
     _onPlayerStateReceived(data) {
         const playerData = data.player;
-        const actor = this._world.getActorByID(playerData.id);
-        actor.body.x = playerData.position.x;
-        actor.body.y = playerData.position.y;
-        actor.body.setLinearVelocity(playerData.velocity.x, playerData.velocity.y);
+        const actor = this._world.getActorByID(playerData[0]);
+        actor.body.setPosition(playerData[1], playerData[2]);
+        actor.body.setLinearVelocity(playerData[3], playerData[4]);
+    }
+
+    _onStateUpdate(data) {
+        console.log(data);
     }
 
     _createWorld(mapData, playersData) {

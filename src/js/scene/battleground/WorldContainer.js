@@ -20,9 +20,9 @@ class WorldContainer extends PIXI.Container {
 
     spawnActor(playerData) {
         const vehicle = this._createVehicle();
-        vehicle.position.set(playerData.position.x, playerData.position.y);
+        vehicle.position.set(playerData[1], playerData[2]);
         vehicle.body = this._physics.addBody(vehicle);
-        this._actors[playerData.id] = vehicle;
+        this._actors[playerData[0]] = vehicle;
     }
 
     removeActorByID(actorID) {
@@ -56,8 +56,9 @@ class WorldContainer extends PIXI.Container {
         const actors = {};
         for (const playerData of playersData) {
             const actor = this._createVehicle();
-            actor.position.set(playerData.position.x, playerData.position.y);
-            actors[playerData.id] = actor;
+            const playerID = playerData[0];
+            actor.position.set(playerData[1], playerData[2]);
+            actors[playerID] = actor;
         }
         return actors;
     }
